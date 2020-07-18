@@ -2,11 +2,12 @@ use std::collections::HashMap;
 use std::collections::hash_map::RandomState;
 
 // translated from https://leetcode.com/articles/number-of-atoms/#
-fn parse_formula(formula: &str) -> HashMap<String, u32, RandomState> {
+fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>, String> {
     let mut stack: Vec<HashMap<String, u32>> = vec![HashMap::new()];
-    let mut i = 0;
-    let N = formula.len();
-    while i < N {
+    let mut i: usize = 0;
+    let N: usize = formula.len();
+    let mut broken: bool = false;
+    while i < N && !broken {
         println!("{:?}", formula.chars().nth(i));
         println!("{:?}", formula.chars());
         match formula.chars().nth(i).unwrap() {
@@ -15,31 +16,37 @@ fn parse_formula(formula: &str) -> HashMap<String, u32, RandomState> {
                 i += 1;
             },
             ')' => {
-                let top = stack.pop().unwrap();
-                i += 1;
-                let i_start = i;
-                while i < N && formula.chars().nth(i).unwrap().is_digit(10) {
-                    i += 1;
-                }
-                let mult: u32 = match i_start == i {
-                    true => 1,
-                    false => {
-                        let multiplicity_str = formula.get(i_start..i).unwrap();
-                        multiplicity_str.parse::<u32>().unwrap()
-                    }
+                match stack.pop(){
+                    Some(top) => {
+                        i += 1;
+                        let i_start = i;
+                        while i < N && formula.chars().nth(i).unwrap().is_digit(10) {
+                            i += 1;
+                        }
+                        let mult: u32 = match i_start == i {
+                            true => 1,
+                            false => {
+                                let multiplicity_str = formula.get(i_start..i).unwrap();
+                                multiplicity_str.parse::<u32>().unwrap()
+                            }
+                        };
+                        for (name, v) in top {
+                            match stack.last() {
+                                Some(last) => {
+                                    let curr = match last.get(name.as_str()) {
+                                        Some(val) => val.clone(),
+                                        None => stack.last_mut().unwrap().insert(name.to_owned(), 0).unwrap_or(0)
+                                    };
+                                    let addt = v.clone() * mult;
+                                    let new = curr.clone() + addt;
+                                    stack.last_mut().unwrap().insert(name.to_owned(), new);
+                                },
+                                None => broken = true,
+                            }
+                        }
+                    },
+                    None => broken = true
                 };
-                for (name, v) in top {
-                    let curr = match stack
-                        .last()
-                        .unwrap()
-                        .get(name.as_str()) {
-                        Some(val) => val.clone(),
-                        None => stack.last_mut().unwrap().insert(name.to_owned(), 0).unwrap_or(0)
-                    };
-                    let addt = v.clone() * mult;
-                    let new = curr.clone() + addt;
-                    stack.last_mut().unwrap().insert(name.to_owned(), new);
-                }
             }
             _ => {
                 let mut i_start = i;
@@ -63,24 +70,33 @@ fn parse_formula(formula: &str) -> HashMap<String, u32, RandomState> {
                         multiplicity_str.parse::<u32>().unwrap()
                     }
                 };
-                let curr = match stack
-                    .last()
-                    .unwrap()
-                    .get(name) {
-                    Some(val) => val.clone(),
-                    None => stack.last_mut().unwrap().insert(name.to_owned(), 0).unwrap_or(0)
-                };
-                let new = curr.to_owned() + mult;
-                stack.last_mut().unwrap().insert(name.to_string(), new);
+                match stack.last() {
+                    Some(last) => {
+                        let curr = match last.get(name) {
+                            Some(val) => val.clone(),
+                            None => stack.last_mut().unwrap().insert(name.to_owned(), 0).unwrap_or(0)
+                        };
+                        let new = curr.to_owned() + mult;
+                        stack.last_mut().unwrap().insert(name.to_string(), new);
+                    },
+                    None => broken = true,
+                }
             }
         }
     }
-    return stack.last().unwrap().clone();
+    if broken {
+        Err("Could not parse".to_string())
+    } else {
+        Ok(stack.last().unwrap().clone())
+    }
 }
 
 
 fn main() {
     let formula = std::env::args().nth(1).expect("Formula Required");
     let result = parse_formula(formula.as_str());
-    println!("{:?}", result)
+    match result {
+        Err(msg) => println!("ERROR: Could not parse {:?}", formula),
+        Ok(atoms) => println!("Atoms: {:?}", atoms)
+    }
 }
