@@ -100,13 +100,16 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>,
 mod tests {
     use crate::parse::parse_formula;
     use std::collections::HashMap;
+    use std::collections::hash_map::RandomState;
+
+    use crate::test_utils::e;
 
     #[test]
     fn ethane() {
         let formula = "C2H6";
         let result = parse_formula(formula).ok().unwrap();
         let expected: HashMap<&str, u32> = [("C", 2), ("H", 6)].iter().cloned().collect();
-        assert_eq!(result, expected);
+        assert_eq!(result, e(expected));
     }
 
     #[test]
@@ -117,7 +120,7 @@ mod tests {
             .iter()
             .cloned()
             .collect();
-        assert_eq!(result, expected);
+        assert_eq!(result, e(expected));
     }
 
     #[test]
@@ -137,9 +140,11 @@ mod tests {
 
     #[test]
     fn mismatched_bracket_types() {
-        let formula = "{C2H6)12";
-        let result = parse_formula(formula).ok().unwrap();
-        let expected: HashMap<&str, u32> = [("C", 24), ("H", 72)].iter().cloned().collect();
-        assert_eq!(result, expected);
+        let formula: &str = "{C2H6)12";
+        let result: HashMap<String, u32, RandomState> =
+            parse_formula(formula).ok().unwrap();
+        let expected: HashMap<&str, u32> =
+            [("C", 24), ("H", 72)].iter().cloned().collect();
+        assert_eq!(result, e(expected));
     }
 }

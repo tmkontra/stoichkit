@@ -1,5 +1,6 @@
 mod molecule;
 mod parse;
+mod test_utils;
 
 extern crate clap;
 use clap::{App, Arg, ArgMatches, SubCommand};

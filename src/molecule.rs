@@ -24,6 +24,8 @@ mod tests {
     use math::round::half_up;
     use std::collections::HashMap;
 
+    use crate::test_utils::e;
+
     fn round(weight: f32) -> f64 {
         half_up(weight as f64, 2)
     }
@@ -31,7 +33,7 @@ mod tests {
     #[test]
     fn ethane() {
         let molecule: HashMap<&str, u32> = [("C", 2), ("H", 6)].iter().cloned().collect();
-        let weight = molecular_weight(&molecule).unwrap();
+        let weight = molecular_weight(e(molecule)).unwrap();
         assert_eq!(weight, 30.07);
     }
 
@@ -39,7 +41,7 @@ mod tests {
     fn cellulose() {
         let molecule: HashMap<&str, u32> =
             [("C", 6), ("H", 10), ("O", 5)].iter().cloned().collect();
-        let weight = molecular_weight(&molecule).unwrap();
+        let weight = molecular_weight(e(molecule)).unwrap();
         assert_eq!(round(weight), 162.14);
     }
 
@@ -49,7 +51,7 @@ mod tests {
             .iter()
             .cloned()
             .collect();
-        let weight = molecular_weight(&molecule).unwrap();
+        let weight = molecular_weight(e(molecule)).unwrap();
         assert_eq!(round(weight), 348.27);
     }
 }
