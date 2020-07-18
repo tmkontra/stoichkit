@@ -2,7 +2,7 @@ use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 
 // translated from https://leetcode.com/articles/number-of-atoms/#
-pub fn parse_formula(formula: &str) -> Result<HashMap<&str, u32, RandomState>, &'static str> {
+pub fn parse_formula(formula: &str) -> Result<HashMap<&str, u32, RandomState>, String> {
     let mut stack: Vec<HashMap<&str, u32>> = vec![HashMap::new()];
     let mut i: usize = 0;
     let N: usize = formula.len();
@@ -90,7 +90,7 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<&str, u32, RandomState>, &
         }
     }
     if broken {
-        Err("Could not parse")
+        Err(String::from("Could not parse"))
     } else {
         Ok(stack.last().unwrap().clone())
     }

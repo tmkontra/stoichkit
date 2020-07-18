@@ -2,19 +2,19 @@ use std::collections::HashMap;
 
 use ptable::Element;
 
-pub fn molecular_weight(atoms: HashMap<&str, u32>) -> Result<f32, &'static str> {
+pub fn molecular_weight(atoms: HashMap<&str, u32>) -> Result<f32, String> {
     let mut weight: f32 = 0 as f32;
     let mut err: bool = false;
     for (symbol, count) in atoms {
         match Element::from_symbol(symbol) {
-            Some(el) => weight += el.get_atomic_mass() * count as f32,
+            Some(el) => weight += el.get_atomic_mass() * count.clone() as f32,
             None => err = true,
         }
     }
     if !err {
         Ok(weight)
     } else {
-        Err("Invalid molecular formula")
+        Err(String::from("Invalid molecular formula"))
     }
 }
 
@@ -31,7 +31,7 @@ mod tests {
     #[test]
     fn ethane() {
         let molecule: HashMap<&str, u32> = [("C", 2), ("H", 6)].iter().cloned().collect();
-        let weight = molecular_weight(molecule).unwrap();
+        let weight = molecular_weight(&molecule).unwrap();
         assert_eq!(weight, 30.07);
     }
 
@@ -39,7 +39,7 @@ mod tests {
     fn cellulose() {
         let molecule: HashMap<&str, u32> =
             [("C", 6), ("H", 10), ("O", 5)].iter().cloned().collect();
-        let weight = molecular_weight(molecule).unwrap();
+        let weight = molecular_weight(&molecule).unwrap();
         assert_eq!(round(weight), 162.14);
     }
 
@@ -49,7 +49,7 @@ mod tests {
             .iter()
             .cloned()
             .collect();
-        let weight = molecular_weight(molecule).unwrap();
+        let weight = molecular_weight(&molecule).unwrap();
         assert_eq!(round(weight), 348.27);
     }
 }
