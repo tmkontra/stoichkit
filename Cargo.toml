@@ -1,5 +1,5 @@
 [package]
-name = "stoichx"
+name = "stoichkit"
 version = "0.1.0"
 authors = ["tmck"]
 edition = "2018"
