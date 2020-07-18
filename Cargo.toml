@@ -8,3 +8,6 @@ edition = "2018"
 
 [dependencies]
 ptable = "0.3.2"
+
+[dev-dependencies]
+libmath = "*"
