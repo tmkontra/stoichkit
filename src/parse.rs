@@ -95,3 +95,51 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<&str, u32, RandomState>, &
         Ok(stack.last().unwrap().clone())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::parse::parse_formula;
+    use std::collections::HashMap;
+
+    #[test]
+    fn ethane() {
+        let formula = "C2H6";
+        let result = parse_formula(formula).ok().unwrap();
+        let expected: HashMap<&str, u32> = [("C", 2), ("H", 6)].iter().cloned().collect();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn nickel_tert_butoxide() {
+        let formula = "Ni[OC(CH3)3]2";
+        let result = parse_formula(formula).ok().unwrap();
+        let expected: HashMap<&str, u32> = [("Ni", 1), ("O", 2), ("C", 8), ("H", 18)]
+            .iter()
+            .cloned()
+            .collect();
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn missing_open_bracket() {
+        let formula = "(C2H3)3)";
+        let result = parse_formula(formula);
+        assert!(result.is_err(), "{:?}", result.ok());
+    }
+
+    #[test]
+    #[should_panic] // todo: better enforce matching brakcets
+    fn missing_close_bracket() {
+        let formula = "((C2H3)3";
+        let result = parse_formula(formula);
+        assert!(result.is_err(), "{:?}", result.ok());
+    }
+
+    #[test]
+    fn mismatched_bracket_types() {
+        let formula = "{C2H6)12";
+        let result = parse_formula(formula).ok().unwrap();
+        let expected: HashMap<&str, u32> = [("C", 24), ("H", 72)].iter().cloned().collect();
+        assert_eq!(result, expected);
+    }
+}
