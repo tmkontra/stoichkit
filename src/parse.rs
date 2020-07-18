@@ -61,10 +61,7 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>,
                 }
                 let name = formula.get(i_start..i).unwrap();
                 i_start = i;
-                trace!(
-                    "Found element {:?}",
-                    name
-                );
+                trace!("Found element {:?}", name);
                 while i < N && formula.chars().nth(i).unwrap().is_digit(10) {
                     i += 1
                 }
@@ -73,7 +70,6 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>,
                     false => {
                         let multiplicity_str = formula.get(i_start..i).unwrap();
                         multiplicity_str.parse::<u32>().unwrap()
-
                     }
                 };
                 trace!("Got multiplicity {:?} for element {:?}", mult, name);
@@ -99,7 +95,10 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>,
             }
         }
     }
-    let result = stack.last().ok_or(format!("Error parsing {}", formula))?.clone();
+    let result = stack
+        .last()
+        .ok_or(format!("Error parsing {}", formula))?
+        .clone();
     for (symbol, _) in result {
         match symbol.chars().all(|c| c.is_ascii_alphabetic()) {
             true => continue,

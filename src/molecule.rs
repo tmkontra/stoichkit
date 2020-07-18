@@ -11,11 +11,11 @@ pub fn molecular_weight(atoms: HashMap<String, u32>) -> Result<f32, String> {
                 let mass = el.get_atomic_mass();
                 trace!("Adding {:?} x {:?} for element {:?}", count, mass, el);
                 weight += mass * count.clone() as f32
-            },
+            }
             None => {
                 error!("Got invalid symbol {:?}", symbol.as_str());
                 Err(format!("Got invalid symbol {}", symbol.as_str()))?
-            },
+            }
         }
     }
     Ok(weight)

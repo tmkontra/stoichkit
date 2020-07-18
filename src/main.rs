@@ -21,13 +21,20 @@ fn parse_reaction(args: ArgMatches) -> Result<Reaction, String> {
     let in_grams_arg = args
         .value_of("reagent_weight")
         .ok_or(format!("Missing reagent weight"))
-        .and_then(|g| g.parse::<f32>().or(Err(format!("Invalid reagent weight {}", g))));
-    let out_formula = args.value_of("product_formula")
+        .and_then(|g| {
+            g.parse::<f32>()
+                .or(Err(format!("Invalid reagent weight {}", g)))
+        });
+    let out_formula = args
+        .value_of("product_formula")
         .ok_or("Invalid product formula");
     let out_grams_arg = args
         .value_of("product_weight")
         .ok_or(format!("Missing product weight"))
-        .and_then(|g| g.parse::<f32>().or(Err(format!("Invalid product weight {}", g))));
+        .and_then(|g| {
+            g.parse::<f32>()
+                .or(Err(format!("Invalid product weight {}", g)))
+        });
     let rg = Substance::new(in_formula?, in_grams_arg?)?;
     let pd = Substance::new(out_formula?, out_grams_arg?)?;
     Ok(Reaction::new(rg, pd))
