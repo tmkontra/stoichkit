@@ -2,11 +2,11 @@ use std::collections::HashMap;
 
 use ptable::Element;
 
-pub fn molecular_weight(atoms: HashMap<&str, u32>) -> Result<f32, String> {
+pub fn molecular_weight(atoms: HashMap<String, u32>) -> Result<f32, String> {
     let mut weight: f32 = 0 as f32;
     let mut err: bool = false;
     for (symbol, count) in atoms {
-        match Element::from_symbol(symbol) {
+        match Element::from_symbol(symbol.as_str()) {
             Some(el) => weight += el.get_atomic_mass() * count.clone() as f32,
             None => err = true,
         }

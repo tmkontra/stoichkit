@@ -15,14 +15,14 @@ fn percent_yield(reaction: &Reaction) -> f32 {
     rmoles / pmoles
 }
 
-struct Substance<'a> {
-    formula: &'a str,
+struct Substance {
+    formula: String,
     mass: f32,
-    atoms: HashMap<&'a str, u32>,
+    atoms: HashMap<String, u32>,
     molecular_weight: f32,
 }
 
-impl<'a> Substance<'_> {
+impl Substance {
     pub fn new(formula: &str, mass: f32) -> Result<Substance, String> {
         let atoms = parse_formula(formula);
         let molecular_weight = atoms
@@ -30,7 +30,7 @@ impl<'a> Substance<'_> {
             .and_then(|atoms| molecular_weight(atoms));
         match molecular_weight {
             Ok(wt) => Ok(Substance {
-                formula: formula,
+                formula: formula.to_string(),
                 mass,
                 atoms: atoms?,
                 molecular_weight: wt,
@@ -44,9 +44,9 @@ impl<'a> Substance<'_> {
     }
 }
 
-struct Reaction<'b> {
-    pub reagent: &'b Substance<'b>,
-    pub product: &'b Substance<'b>,
+struct Reaction {
+    pub reagent: Substance,
+    pub product: Substance,
 }
 
 fn parse_reaction(args: ArgMatches) -> Option<Reaction> {
@@ -61,8 +61,8 @@ fn parse_reaction(args: ArgMatches) -> Option<Reaction> {
     let rg = Substance::new(in_formula?, in_grams_arg?).ok()?;
     let pd = Substance::new(out_formula?, out_grams_arg?).ok()?;
     Some(Reaction {
-        reagent: &rg,
-        product: &pd,
+        reagent: rg,
+        product: pd,
     })
 }
 

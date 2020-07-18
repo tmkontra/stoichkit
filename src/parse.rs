@@ -2,8 +2,8 @@ use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 
 // translated from https://leetcode.com/articles/number-of-atoms/#
-pub fn parse_formula(formula: &str) -> Result<HashMap<&str, u32, RandomState>, String> {
-    let mut stack: Vec<HashMap<&str, u32>> = vec![HashMap::new()];
+pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>, String> {
+    let mut stack: Vec<HashMap<String, u32>> = vec![HashMap::new()];
     let mut i: usize = 0;
     let N: usize = formula.len();
     let mut broken: bool = false;
@@ -33,10 +33,10 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<&str, u32, RandomState>, S
                         for (name, v) in top {
                             match stack.last() {
                                 Some(last) => {
-                                    let curr = match last.get(name) {
+                                    let curr = match last.get(name.as_str()) {
                                         Some(val) => val.clone(),
                                         None => {
-                                            stack.last_mut().unwrap().insert(name, 0).unwrap_or(0)
+                                            stack.last_mut().unwrap().insert(name.to_string(), 0).unwrap_or(0)
                                         }
                                     };
                                     let addt = v.clone() * mult;
@@ -79,10 +79,10 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<&str, u32, RandomState>, S
                     Some(last) => {
                         let curr = match last.get(name) {
                             Some(val) => val.clone(),
-                            None => stack.last_mut().unwrap().insert(name, 0).unwrap_or(0),
+                            None => stack.last_mut().unwrap().insert(name.to_string(), 0).unwrap_or(0),
                         };
                         let new = curr.to_owned() + mult;
-                        stack.last_mut().unwrap().insert(name, new);
+                        stack.last_mut().unwrap().insert(name.to_string(), new);
                     }
                     None => broken = true,
                 }
