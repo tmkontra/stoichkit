@@ -35,9 +35,11 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>,
                                 Some(last) => {
                                     let curr = match last.get(name.as_str()) {
                                         Some(val) => val.clone(),
-                                        None => {
-                                            stack.last_mut().unwrap().insert(name.to_string(), 0).unwrap_or(0)
-                                        }
+                                        None => stack
+                                            .last_mut()
+                                            .unwrap()
+                                            .insert(name.to_string(), 0)
+                                            .unwrap_or(0),
                                     };
                                     let addt = v.clone() * mult;
                                     let new = curr.clone() + addt;
@@ -79,7 +81,11 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>,
                     Some(last) => {
                         let curr = match last.get(name) {
                             Some(val) => val.clone(),
-                            None => stack.last_mut().unwrap().insert(name.to_string(), 0).unwrap_or(0),
+                            None => stack
+                                .last_mut()
+                                .unwrap()
+                                .insert(name.to_string(), 0)
+                                .unwrap_or(0),
                         };
                         let new = curr.to_owned() + mult;
                         stack.last_mut().unwrap().insert(name.to_string(), new);
@@ -99,8 +105,8 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>,
 #[cfg(test)]
 mod tests {
     use crate::parse::parse_formula;
-    use std::collections::HashMap;
     use std::collections::hash_map::RandomState;
+    use std::collections::HashMap;
 
     use crate::test_utils::e;
 
@@ -141,10 +147,8 @@ mod tests {
     #[test]
     fn mismatched_bracket_types() {
         let formula: &str = "{C2H6)12";
-        let result: HashMap<String, u32, RandomState> =
-            parse_formula(formula).ok().unwrap();
-        let expected: HashMap<&str, u32> =
-            [("C", 24), ("H", 72)].iter().cloned().collect();
+        let result: HashMap<String, u32, RandomState> = parse_formula(formula).ok().unwrap();
+        let expected: HashMap<&str, u32> = [("C", 24), ("H", 72)].iter().cloned().collect();
         assert_eq!(result, e(expected));
     }
 }

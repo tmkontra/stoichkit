@@ -26,9 +26,7 @@ struct Substance {
 impl Substance {
     pub fn new(formula: &str, mass: f32) -> Result<Substance, String> {
         let atoms = parse_formula(formula);
-        let molecular_weight = atoms
-            .clone()
-            .and_then(|atoms| molecular_weight(atoms));
+        let molecular_weight = atoms.clone().and_then(|atoms| molecular_weight(atoms));
         match molecular_weight {
             Ok(wt) => Ok(Substance {
                 formula: formula.to_string(),
