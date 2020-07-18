@@ -19,21 +19,21 @@ fn parse_reaction(args: ArgMatches) -> Result<Reaction, String> {
         .value_of("reagent_formula")
         .ok_or("Invalid reagent formula");
     let in_grams_arg = args
-        .value_of("reagent_weight")
-        .ok_or(format!("Missing reagent weight"))
+        .value_of("reagent_grams")
+        .ok_or(format!("Missing reagent grams"))
         .and_then(|g| {
             g.parse::<f32>()
-                .or(Err(format!("Invalid reagent weight {}", g)))
+                .or(Err(format!("Invalid reagent grams {}", g)))
         });
     let out_formula = args
         .value_of("product_formula")
         .ok_or("Invalid product formula");
     let out_grams_arg = args
-        .value_of("product_weight")
-        .ok_or(format!("Missing product weight"))
+        .value_of("product_grams")
+        .ok_or(format!("Missing product grams"))
         .and_then(|g| {
             g.parse::<f32>()
-                .or(Err(format!("Invalid product weight {}", g)))
+                .or(Err(format!("Invalid product grams {}", g)))
         });
     let rg = Substance::new(in_formula?, in_grams_arg?)?;
     let pd = Substance::new(out_formula?, out_grams_arg?)?;
@@ -45,9 +45,9 @@ fn main() {
     let cli: ArgMatches = App::new("StoichKit")
         .version("0.1")
         .arg(Arg::with_name("reagent_formula").required(true).index(1))
-        .arg(Arg::with_name("reagent_weight").required(true).index(2))
+        .arg(Arg::with_name("reagent_grams").required(true).index(2))
         .arg(Arg::with_name("product_formula").required(true).index(3))
-        .arg(Arg::with_name("product_weight").required(true).index(4))
+        .arg(Arg::with_name("product_grams").required(true).index(4))
         .get_matches();
     match parse_reaction(cli).map(|r| r.percent_yield()) {
         Ok(yld) => println!("Yield: {:?}", yld),

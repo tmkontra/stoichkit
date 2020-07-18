@@ -18,7 +18,7 @@ impl Substance {
             formula: formula.to_string(),
             mass,
             atoms: atoms?,
-            molecular_weight: molecular_weight,
+            molecular_weight,
         })
     }
 
