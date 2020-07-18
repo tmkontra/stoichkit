@@ -1,10 +1,9 @@
-use std::collections::HashMap;
 use std::collections::hash_map::RandomState;
-
+use std::collections::HashMap;
 
 // translated from https://leetcode.com/articles/number-of-atoms/#
-pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>, &'static str> {
-    let mut stack: Vec<HashMap<String, u32>> = vec![HashMap::new()];
+pub fn parse_formula(formula: &str) -> Result<HashMap<&str, u32, RandomState>, &'static str> {
+    let mut stack: Vec<HashMap<&str, u32>> = vec![HashMap::new()];
     let mut i: usize = 0;
     let N: usize = formula.len();
     let mut broken: bool = false;
@@ -12,12 +11,12 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>,
         println!("{:?}", formula.chars().nth(i));
         println!("{:?}", formula.chars());
         match formula.chars().nth(i).unwrap() {
-            '(' => {
+            '(' | '[' | '{' => {
                 stack.push(HashMap::new());
                 i += 1;
-            },
-            ')' => {
-                match stack.pop(){
+            }
+            ')' | ']' | '}' => {
+                match stack.pop() {
                     Some(top) => {
                         i += 1;
                         let i_start = i;
@@ -34,19 +33,21 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>,
                         for (name, v) in top {
                             match stack.last() {
                                 Some(last) => {
-                                    let curr = match last.get(name.as_str()) {
+                                    let curr = match last.get(name) {
                                         Some(val) => val.clone(),
-                                        None => stack.last_mut().unwrap().insert(name.to_owned(), 0).unwrap_or(0)
+                                        None => {
+                                            stack.last_mut().unwrap().insert(name, 0).unwrap_or(0)
+                                        }
                                     };
                                     let addt = v.clone() * mult;
                                     let new = curr.clone() + addt;
-                                    stack.last_mut().unwrap().insert(name.to_owned(), new);
-                                },
+                                    stack.last_mut().unwrap().insert(name, new);
+                                }
                                 None => broken = true,
                             }
                         }
-                    },
-                    None => broken = true
+                    }
+                    None => broken = true,
                 };
             }
             _ => {
@@ -59,7 +60,10 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>,
                 }
                 let name = formula.get(i_start..i).unwrap();
                 i_start = i;
-                println!("digit so name {:?} and i_start {:?} for mult", name, i_start);
+                println!(
+                    "digit so name {:?} and i_start {:?} for mult",
+                    name, i_start
+                );
                 while i < N && formula.chars().nth(i).unwrap().is_digit(10) {
                     println!("{:?} at {:?}", formula.chars().nth(i), i);
                     i += 1
@@ -75,11 +79,11 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>,
                     Some(last) => {
                         let curr = match last.get(name) {
                             Some(val) => val.clone(),
-                            None => stack.last_mut().unwrap().insert(name.to_owned(), 0).unwrap_or(0)
+                            None => stack.last_mut().unwrap().insert(name, 0).unwrap_or(0),
                         };
                         let new = curr.to_owned() + mult;
-                        stack.last_mut().unwrap().insert(name.to_string(), new);
-                    },
+                        stack.last_mut().unwrap().insert(name, new);
+                    }
                     None => broken = true,
                 }
             }
