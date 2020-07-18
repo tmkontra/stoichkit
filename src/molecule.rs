@@ -7,15 +7,18 @@ pub fn molecular_weight(atoms: HashMap<String, u32>) -> Result<f32, String> {
     let mut err: bool = false;
     for (symbol, count) in atoms {
         match Element::from_symbol(symbol.as_str()) {
-            Some(el) => weight += el.get_atomic_mass() * count.clone() as f32,
-            None => err = true,
+            Some(el) => {
+                let mass = el.get_atomic_mass();
+                trace!("Adding {:?} x {:?} for element {:?}", count, mass, el);
+                weight += mass * count.clone() as f32
+            },
+            None => {
+                error!("Got invalid symbol {:?}", symbol.as_str());
+                Err(format!("Got invalid symbol {}", symbol.as_str()))?
+            },
         }
     }
-    if !err {
-        Ok(weight)
-    } else {
-        Err(String::from("Invalid molecular formula"))
-    }
+    Ok(weight)
 }
 
 #[cfg(test)]

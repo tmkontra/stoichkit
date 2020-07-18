@@ -9,6 +9,8 @@ edition = "2018"
 [dependencies]
 clap = "2.33.1"
 ptable = "0.3.2"
+log = "*"
+env_logger = "*"
 
 
 [dev-dependencies]
