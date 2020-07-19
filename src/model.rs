@@ -2,16 +2,23 @@ use crate::parse::parse_formula;
 use std::collections::HashMap;
 
 use crate::molecule::molecular_weight;
+use ptable::Element;
 
+#[derive(Clone)]
 pub struct Substance {
     formula: String,
     mass: f32,
-    atoms: HashMap<String, u32>,
+    atoms: HashMap<Element, u32>,
     molecular_weight: f32,
+    molar_coefficient: u32,
 }
 
 impl Substance {
-    pub fn new(formula: &str, mass: f32) -> Result<Substance, String> {
+    pub fn new(
+        formula: &str,
+        mass: f32,
+        molar_coefficient: Option<u32>,
+    ) -> Result<Substance, String> {
         let atoms = parse_formula(formula);
         let molecular_weight = atoms.clone().and_then(|atoms| molecular_weight(atoms))?;
         Ok(Substance {
@@ -19,6 +26,7 @@ impl Substance {
             mass,
             atoms: atoms?,
             molecular_weight,
+            molar_coefficient: molar_coefficient.unwrap_or(1),
         })
     }
 

@@ -1,9 +1,18 @@
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 
+use ptable::Element;
+
+fn get_element(symbol: &str) -> Result<Element, String> {
+    match symbol.chars().all(|c| c.is_ascii_alphabetic()) {
+        true => Element::from_symbol(symbol).ok_or(format!("Invalid symbol {}", symbol)),
+        false => Err(format!("Invalid symbol {}", symbol)),
+    }
+}
+
 // translated from https://leetcode.com/articles/number-of-atoms/#
-pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>, String> {
-    let mut stack: Vec<HashMap<String, u32>> = vec![HashMap::new()];
+pub fn parse_formula(formula: &str) -> Result<HashMap<Element, u32, RandomState>, String> {
+    let mut stack: Vec<HashMap<Element, u32>> = vec![HashMap::new()];
     let mut i: usize = 0;
     let N: usize = formula.len();
     let mut broken: bool = false;
@@ -31,20 +40,18 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>,
                             }
                         };
                         trace!("Got multiplicity {:?} for group {:?}", mult, top);
-                        for (name, v) in top {
+                        for (elem, v) in top {
                             match stack.last() {
                                 Some(last) => {
-                                    let curr = match last.get(name.as_str()) {
+                                    let curr = match last.get(&elem) {
                                         Some(val) => val.clone(),
-                                        None => stack
-                                            .last_mut()
-                                            .unwrap()
-                                            .insert(name.to_string(), 0)
-                                            .unwrap_or(0),
+                                        None => {
+                                            stack.last_mut().unwrap().insert(elem, 0).unwrap_or(0)
+                                        }
                                     };
                                     let addt = v.clone() * mult;
                                     let new = curr.clone() + addt;
-                                    stack.last_mut().unwrap().insert(name, new);
+                                    stack.last_mut().unwrap().insert(elem, new);
                                 }
                                 None => broken = true,
                             }
@@ -61,7 +68,8 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>,
                 }
                 let name = formula.get(i_start..i).unwrap();
                 i_start = i;
-                trace!("Found element {:?}", name);
+                trace!("Captured symbol {:?}", name);
+                let elem: Element = get_element(name)?;
                 while i < N && formula.chars().nth(i).unwrap().is_digit(10) {
                     i += 1
                 }
@@ -75,16 +83,12 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>,
                 trace!("Got multiplicity {:?} for element {:?}", mult, name);
                 match stack.last() {
                     Some(last) => {
-                        let curr = match last.get(name) {
+                        let curr = match last.get(&elem) {
                             Some(val) => val.clone(),
-                            None => stack
-                                .last_mut()
-                                .unwrap()
-                                .insert(name.to_string(), 0)
-                                .unwrap_or(0),
+                            None => stack.last_mut().unwrap().insert(elem, 0).unwrap_or(0),
                         };
                         let new = curr.to_owned() + mult;
-                        stack.last_mut().unwrap().insert(name.to_string(), new);
+                        stack.last_mut().unwrap().insert(elem, new);
                     }
                     None => broken = true,
                 }
@@ -95,30 +99,26 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<String, u32, RandomState>,
             }
         }
     }
-    let result = stack
-        .last()
-        .ok_or(format!("Error parsing {}", formula))?
-        .clone();
-    for (symbol, _) in result {
-        match symbol.chars().all(|c| c.is_ascii_alphabetic()) {
-            true => continue,
-            false => broken = true,
-        }
-    }
+
     if broken {
         Err(String::from("Could not parse"))
     } else {
-        Ok(stack.last().unwrap().clone())
+        let result = stack
+            .last()
+            .ok_or(format!("Error parsing {}", formula))?
+            .clone()
+            .to_owned();
+        Ok(result)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::parse::parse_formula;
+    use crate::test_utils::e;
+    use ptable::Element;
     use std::collections::hash_map::RandomState;
     use std::collections::HashMap;
-
-    use crate::test_utils::e;
 
     #[test]
     fn ethane() {
@@ -157,8 +157,22 @@ mod tests {
     #[test]
     fn mismatched_bracket_types() {
         let formula: &str = "{C2H6)12";
-        let result: HashMap<String, u32, RandomState> = parse_formula(formula).ok().unwrap();
+        let result: HashMap<Element, u32, RandomState> = parse_formula(formula).ok().unwrap();
         let expected: HashMap<&str, u32> = [("C", 24), ("H", 72)].iter().cloned().collect();
         assert_eq!(result, e(expected));
+    }
+
+    #[test]
+    fn invalid_symbol() {
+        let formula: &str = "CkCoNv30";
+        let result = parse_formula(formula);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn invalid_string() {
+        let formula: &str = "30k";
+        let result = parse_formula(formula);
+        assert!(result.is_err());
     }
 }
