@@ -5,29 +5,28 @@ A toolkit for stoichiometry.
 
 ### Features
 - Calculates percent yield
-  - given limiting reagent, product and respective masses (in grams)
+  - given a fully balanced chemical reaction, and respective masses (in grams)
 
 ### Usage
 
 ```$xslt
 $ stoichkit --help
-StoichKit 0.1
+stoichkit 0.1.0
 
 USAGE:
-    stoichkit <reagent_formula> <reagent_grams> <product_formula> <product_grams>
+    stoichkit [substances]...
+
+ARGS:
+    <substances>...    Fully balanced chemical reaction list: [<coeff>*]<formula> <grams>, coeff defaults to 1
 
 FLAGS:
     -h, --help       Prints help information
     -V, --version    Prints version information
+```
 
-ARGS:
-    <reagent_formula>    
-    <reagent_grams>      
-    <product_formula>    
-    <product_grams>
-
-$ stoichkit C2H6 30.00213 "(CH3)2" 26.98
-Yield: 1.1120138
+```
+$ stoichkit "2*Al" 2.8 "3*Cl2" 4.25 "2*AlCl3" 4.889
+Yield: 0.91756254
 ```
 
 ### Installation
@@ -39,7 +38,7 @@ Yield: 1.1120138
 
 ### Roadmap
 
-1. Accept all reagents and determine limiting reagent.
-2. Add desktop GUI
-3. Use StoichKit to power a web UI.
+- [x] Accept all reagents and determine limiting reagent.
+- [ ] Add desktop GUI
+- [ ] Use StoichKit to power a web UI.
  

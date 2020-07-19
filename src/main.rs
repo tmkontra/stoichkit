@@ -17,6 +17,9 @@ use std::collections::HashMap;
 #[derive(Clap)]
 #[clap(version = "0.1.0")]
 struct ReactionList {
+    #[clap(
+        about = "Fully balanced chemical reaction list: [<coeff>*]<formula> <grams>, coeff defaults to 1"
+    )]
     substances: Vec<String>,
 }
 
