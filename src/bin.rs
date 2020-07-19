@@ -1,18 +1,9 @@
-mod model;
-mod molecule;
-mod parse;
-mod test_utils;
-
-#[macro_use]
-extern crate log;
-extern crate env_logger;
-
 extern crate clap;
 use clap::{App, Arg, ArgMatches, Clap};
 
-use crate::model::*;
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
+use stoichkit::model::{Reaction, Substance};
 
 #[derive(Clap)]
 #[clap(version = "0.1.0")]
