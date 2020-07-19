@@ -3,13 +3,14 @@ use std::collections::HashMap;
 
 use crate::molecule::molecular_weight;
 use ptable::Element;
+use std::cmp::Ordering;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Substance {
     formula: String,
     mass: f32,
     atoms: HashMap<Element, u32>,
-    molecular_weight: f32,
+    molar_mass: f32,
     molar_coefficient: u32,
 }
 
@@ -25,29 +26,57 @@ impl Substance {
             formula: formula.to_string(),
             mass,
             atoms: atoms?,
-            molecular_weight,
+            molar_mass: molecular_weight,
             molar_coefficient: molar_coefficient.unwrap_or(1),
         })
     }
 
     pub fn moles(self: &Self) -> f32 {
-        self.mass / self.molecular_weight
+        self.mass / self.molar_mass
+    }
+
+    pub fn molrxn(self: &Self) -> f32 {
+        self.moles() / self.molar_coefficient as f32
     }
 }
 
 pub struct Reaction {
-    pub reagent: Substance,
+    pub reagents: Vec<Substance>,
     pub product: Substance,
 }
 
 impl Reaction {
-    pub fn new(reagent: Substance, product: Substance) -> Reaction {
-        Reaction { reagent, product }
+    pub fn new(reagents: Vec<Substance>, product: Substance) -> Reaction {
+        Reaction { reagents, product }
+    }
+
+    pub fn limiting_reagent(self: &Self) -> &Substance {
+        self.reagents
+            .iter()
+            .min_by(|l, r| {
+                l.molrxn()
+                    .partial_cmp(&r.molrxn())
+                    .unwrap_or(Ordering::Equal)
+            })
+            .map(|s| {
+                debug!("Limiting reagent is {}", s.formula);
+                s
+            })
+            .unwrap()
+    }
+
+    pub fn theoretical_yield(self: &Self) -> f32 {
+        let limiting = self.limiting_reagent();
+        trace!("{} moles of limiting reagent", limiting.moles());
+        let exp_moles = limiting.moles()
+            * (self.product.molar_coefficient as f32 / limiting.molar_coefficient as f32);
+        debug!("Theoretical moles of product: {}", exp_moles);
+        let exp_grams = exp_moles * self.product.molar_mass;
+        debug!("Theoretical yield of product (g): {}", exp_grams);
+        exp_grams
     }
 
     pub fn percent_yield(self: &Self) -> f32 {
-        let rmoles = self.reagent.moles();
-        let pmoles = self.product.moles();
-        rmoles / pmoles
+        self.product.mass / self.theoretical_yield()
     }
 }

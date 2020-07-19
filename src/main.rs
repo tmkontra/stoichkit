@@ -40,7 +40,7 @@ impl ReactionList {
                     })?),
                     stoich.last().unwrap().clone(),
                 ),
-                _ => Err("Invalid".to_string())?,
+                _ => Err(format!("Invalid formula {} at position {}", pair[0], i + 1).to_string())?,
             };
             let substance = Substance::new(
                 formula,
@@ -55,10 +55,7 @@ impl ReactionList {
         let (product, reagents) = substances
             .split_last()
             .ok_or(format!("Invalid substance list!"))?;
-        Ok(Reaction::new(
-            reagents.first().unwrap().to_owned(),
-            product.to_owned(),
-        ))
+        Ok(Reaction::new(reagents.to_vec(), product.to_owned()))
     }
 }
 
