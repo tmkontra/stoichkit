@@ -15,9 +15,9 @@ readme = "README.md"
 [dependencies]
 clap = { version = "3.0.0-beta.1", features = ["derive"] }
 ptable = "0.3.2"
-log = "*"
-env_logger = "*"
+log = "0.4.11"
+env_logger = "0.7.1"
 
 
 [dev-dependencies]
-libmath = "*"
+libmath = "0.2.1"
