@@ -16,17 +16,20 @@ readme = "README.md"
 name = "stoichkit"
 path = "src/lib.rs"
 
-
 [[bin]]
 name = "stoichkit"
 path = "src/bin.rs"
 
 [dependencies]
+counter = "0.5.2"
 clap = { version = "3.0.0-beta.1", features = ["derive"] }
+nalgebra = "0.21.1"
+rug = "1.9.0"
 ptable = "0.3.2"
+num = "0.3.0"
+itertools = "0.9.0"
 log = "0.4.11"
 env_logger = "0.7.1"
-
 
 [dev-dependencies]
 libmath = "0.2.1"

@@ -9,7 +9,7 @@ use std::cmp::Ordering;
 pub struct Substance {
     formula: String,
     mass: f32,
-    atoms: HashMap<Element, u32>,
+    pub atoms: HashMap<Element, u32>,
     molar_mass: f32,
     molar_coefficient: u32,
 }
