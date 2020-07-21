@@ -148,7 +148,7 @@ mod tests {
 
     #[test]
     #[should_panic] // todo: better enforce matching brakcets
-    fn missing_close_bracket() {
+    fn missing_closing_bracket() {
         let formula = "((C2H3)3";
         let result = parse_formula(formula);
         assert!(result.is_err(), "{:?}", result.ok());

@@ -7,7 +7,7 @@ use std::cmp::Ordering;
 
 #[derive(Clone, Debug)]
 pub struct Substance {
-    formula: String,
+    pub formula: String,
     mass: f32,
     pub atoms: HashMap<Element, u32>,
     molar_mass: f32,
