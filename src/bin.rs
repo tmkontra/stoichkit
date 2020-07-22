@@ -18,9 +18,9 @@ struct ReactionList {
 #[derive(Clap)]
 enum Subcommand {
     #[clap(version = "0.1")]
-    Rxn(ReactionList),
+    Yield(ReactionList),
     #[clap(version = "0.1")]
-    U(Unbal),
+    Balance(Unbal),
 }
 
 #[derive(Clap)]
@@ -44,6 +44,10 @@ impl Unbal {
             .dropping(*(&rx_len))
             .map(|f| Substance::from_formula(f.as_str()))
             .collect();
+        match (r.clone()?.len(), p.clone()?.len()) {
+            (x, y) if x >= 1 as usize && y >= 1 as usize => Ok(()),
+            _ => Err("Must provide at least 1 reactant and 1 product"),
+        }?;
         let balanced = balance(r?, p?);
         let r = format!("{:?}", balanced);
         let balr: Vec<String> = balanced
@@ -114,11 +118,11 @@ fn main() {
     env_logger::Builder::from_env("STOICHKIT_LOG").init();
     let opts: Cli = Cli::parse();
     match opts.subcmd {
-        Subcommand::Rxn(r) => match r.reaction().map(|r| r.percent_yield()) {
+        Subcommand::Yield(r) => match r.reaction().map(|r| r.percent_yield()) {
             Ok(yld) => println!("Yield: {:?}", yld),
             Err(msg) => println!("ERROR: {:?}", msg),
         },
-        Subcommand::U(u) => {
+        Subcommand::Balance(u) => {
             let result = u.balance().unwrap_or_else(|e| e);
             println!("{}", result);
         }
