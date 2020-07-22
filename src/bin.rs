@@ -17,15 +17,13 @@ struct ReactionList {
 
 #[derive(Clap)]
 enum Subcommand {
-    #[clap(version = "0.1")]
     Yield(ReactionList),
-    #[clap(version = "0.1")]
     Balance(Unbal),
 }
 
 #[derive(Clap)]
 struct Unbal {
-    #[clap(about = "to be balanced")]
+    #[clap(about = "Chemical equation [...reactants] = [...products]")]
     substances: Vec<String>,
 }
 
@@ -66,7 +64,7 @@ impl Unbal {
 }
 
 #[derive(Clap)]
-#[clap(version = "0.1.0")]
+#[clap(version = "0.2.0")]
 struct Cli {
     #[clap(subcommand)]
     subcmd: Subcommand,
