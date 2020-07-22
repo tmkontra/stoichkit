@@ -1,11 +1,17 @@
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
+use std::panic;
 
 use ptable::Element;
 
 fn get_element(symbol: &str) -> Result<Element, String> {
     match symbol.chars().all(|c| c.is_ascii_alphabetic()) {
-        true => Element::from_symbol(symbol).ok_or(format!("Invalid symbol {}", symbol)),
+        true => {
+            let e: Result<Option<Element>, _> =
+                panic::catch_unwind(|| Element::from_symbol(symbol));
+            e.unwrap_or(None)
+                .ok_or(format!("Invalid symbol {}", symbol))
+        }
         false => Err(format!("Invalid symbol {}", symbol)),
     }
 }
