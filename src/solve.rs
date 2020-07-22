@@ -18,7 +18,10 @@ use rug::Rational;
 
 use crate::model::Substance;
 
-pub fn balance(reagents: Vec<Substance>, products: Vec<Substance>) -> Vec<(String, i32)> {
+pub fn balance(
+    reagents: Vec<Substance>,
+    products: Vec<Substance>,
+) -> Result<Vec<(String, i32)>, String> {
     let mut all_atoms: HashSet<&Element> = HashSet::new();
     for r in &reagents {
         for e in r.atoms.keys() {
@@ -67,36 +70,50 @@ pub fn balance(reagents: Vec<Substance>, products: Vec<Substance>) -> Vec<(Strin
     let c: Vec<f32> = solve.column(0).iter().map(|c| *c as f32).collect();
     let fc: Vec<Rational> = c
         .iter()
-        .map(|c| limit_denominator(&Rational::from_f32(*c).unwrap().abs(), 100))
-        .collect();
+        .map(|c| Rational::from_f32(*c).ok_or(format!("Could not rational: {:?}", c)))
+        .collect::<Result<Vec<Rational>, String>>()?
+        .iter()
+        .cloned()
+        .map(|r| limit_denominator(&r.abs(), 100))
+        .collect::<Result<Vec<Rational>, String>>()?;
     let denoms: Vec<_> = fc.iter().map(|c| c.denom()).collect();
-    let mult = denoms.iter().combinations(2).fold(1 as i32, |mult, cur| {
-        max(
-            mult,
-            lcm(cur[0].to_i32().unwrap(), cur[1].to_i32().unwrap()),
-        )
-    });
-    let mut fin: Vec<_> = fc
+    let mult = denoms
+        .iter()
+        .cloned()
+        .map(|i| i.to_i32().ok_or(format!("Could not balance!")))
+        .collect::<Result<Vec<i32>, String>>()?
+        .iter()
+        .cloned()
+        .combinations(2)
+        .fold(1 as i32, |mult, cur| max(mult, lcm(cur[0], cur[1])));
+    let mut fin: Vec<i32> = fc
         .iter()
         .map(|f| f * Rational::from((mult, 1)))
-        .map(|f| f.numer().to_i32().unwrap())
-        .collect();
+        .map(|f| f.numer().to_i32().ok_or("Could not i32".to_string()))
+        .collect::<Result<Vec<i32>, String>>()?;
     fin.push(mult);
     let result: Vec<(String, i32)> = subs
         .iter()
         .map(|s| s.to_owned().formula.clone())
         .zip(&mut fin.iter().map(|c| c.to_owned()))
         .collect();
-    result
+    Ok(result)
 }
 
-fn limit_denominator(f: &Rational, max_denom: u32) -> Rational {
+fn limit_denominator(f: &Rational, max_denom: u32) -> Result<Rational, String> {
     debug!("Limiting denom for {:?} to at most {:?}", f, max_denom);
     if max_denom < 1 || f.denom() <= &max_denom {
-        f.clone()
+        Ok(f.to_owned())
     } else {
         let (mut p0, mut q0, mut p1, mut q1) = (0, 1, 1, 0);
-        let (mut n, mut d) = (f.numer().to_i32().unwrap(), f.denom().to_i32().unwrap());
+        let (mut n, mut d) = (
+            f.numer()
+                .to_i32()
+                .ok_or_else(|| format!("No numerator for: {:?}", f))?,
+            f.denom()
+                .to_i32()
+                .ok_or_else(|| format!("No denominator for: {:?}", f))?,
+        );
         let mut a: i32;
         let mut q2: i32;
         loop {
@@ -124,9 +141,9 @@ fn limit_denominator(f: &Rational, max_denom: u32) -> Rational {
         let d1f: Rational = (bound1.clone() - f);
         let d2f: Rational = bound2.clone() - f;
         return if d1f.abs() <= d2f.abs() {
-            bound1.clone()
+            Ok(bound1.to_owned())
         } else {
-            bound2.clone()
+            Ok(bound2.to_owned())
         };
     }
 }
@@ -150,7 +167,7 @@ mod tests {
             Substance::new("Cl2", 3.0, None).unwrap(),
         ];
         let pd = vec![Substance::new("AlCl3", 3.0, None).unwrap()];
-        let bal = balance(rg, pd);
+        let bal = balance(rg, pd).unwrap();
         let result: Vec<(&str, i32)> = bal
             .iter()
             .map(|(s, c)| (s.as_str(), c.to_owned()))
@@ -169,7 +186,7 @@ mod tests {
             Substance::new("CO2", 3.0, None).unwrap(),
             Substance::new("H2O", 3.0, None).unwrap(),
         ];
-        let bal = balance(rg, pd);
+        let bal = balance(rg, pd).unwrap();
         let result: Vec<(&str, i32)> = bal
             .iter()
             .map(|(s, c)| (s.as_str(), c.to_owned()))
@@ -193,7 +210,7 @@ mod tests {
             Substance::new("H2O", 3.0, None).unwrap(),
             Substance::new("Cl2", 3.0, None).unwrap(),
         ];
-        let bal = balance(rg, pd);
+        let bal = balance(rg, pd).unwrap();
         let result: Vec<(&str, i32)> = bal
             .iter()
             .map(|(s, c)| (s.as_str(), c.to_owned()))

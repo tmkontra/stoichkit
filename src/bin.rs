@@ -46,7 +46,7 @@ impl Unbal {
             (x, y) if x >= 1 as usize && y >= 1 as usize => Ok(()),
             _ => Err("Must provide at least 1 reactant and 1 product"),
         }?;
-        let balanced = balance(r?, p?);
+        let balanced = balance(r?, p?)?;
         let r = format!("{:?}", balanced);
         let balr: Vec<String> = balanced
             .iter()
@@ -64,7 +64,7 @@ impl Unbal {
 }
 
 #[derive(Clap)]
-#[clap(version = "0.2.1")]
+#[clap(version = "0.2.2")]
 struct Cli {
     #[clap(subcommand)]
     subcmd: Subcommand,
