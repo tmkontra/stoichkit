@@ -1,17 +1,74 @@
 extern crate clap;
 use clap::{App, Arg, ArgMatches, Clap};
 
+use itertools::Itertools;
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 use stoichkit::model::{Reaction, Substance};
+use stoichkit::solve::balance;
 
 #[derive(Clap)]
-#[clap(version = "0.1.0")]
 struct ReactionList {
     #[clap(
         about = "Fully balanced chemical reaction list: [<coeff>*]<formula> <grams>, coeff defaults to 1"
     )]
     substances: Vec<String>,
+}
+
+#[derive(Clap)]
+enum Subcommand {
+    #[clap(version = "0.1")]
+    Rxn(ReactionList),
+    #[clap(version = "0.1")]
+    U(Unbal),
+}
+
+#[derive(Clap)]
+struct Unbal {
+    #[clap(about = "to be balanced")]
+    substances: Vec<String>,
+}
+
+impl Unbal {
+    pub fn balance(&self) -> Result<String, String> {
+        let r: Result<Vec<Substance>, _> = self
+            .substances
+            .iter()
+            .take_while(|a| a.as_str() != "=")
+            .map(|f| Substance::from_formula(f.as_str()))
+            .collect();
+        let rx_len = r.clone()?.len() + 1;
+        let p: Result<Vec<Substance>, _> = self
+            .substances
+            .iter()
+            .dropping(*(&rx_len))
+            .map(|f| Substance::from_formula(f.as_str()))
+            .collect();
+        let balanced = balance(r?, p?);
+        let r = format!("{:?}", balanced);
+        let balr: Vec<String> = balanced
+            .iter()
+            .take(rx_len - 1)
+            .map(|(e, c)| format!("{} {}", c, e))
+            .collect();
+        let balp: Vec<String> = balanced
+            .iter()
+            .dropping(rx_len - 1)
+            .map(|(e, c)| format!("{} {}", c, e))
+            .collect();
+        let result = format!("{} = {}", balr.join(" + "), balp.join(" + "));
+        Ok(result)
+    }
+}
+
+#[derive(Clap)]
+#[clap(version = "0.1.0")]
+struct Cli {
+    #[clap(subcommand)]
+    subcmd: Subcommand,
+    //
+    // #[clap(subcommand)]
+    // bal: Unbal
 }
 
 impl ReactionList {
@@ -55,9 +112,15 @@ impl ReactionList {
 
 fn main() {
     env_logger::Builder::from_env("STOICHKIT_LOG").init();
-    let opts: ReactionList = ReactionList::parse();
-    match opts.reaction().map(|r| r.percent_yield()) {
-        Ok(yld) => println!("Yield: {:?}", yld),
-        Err(msg) => println!("ERROR: {:?}", msg),
+    let opts: Cli = Cli::parse();
+    match opts.subcmd {
+        Subcommand::Rxn(r) => match r.reaction().map(|r| r.percent_yield()) {
+            Ok(yld) => println!("Yield: {:?}", yld),
+            Err(msg) => println!("ERROR: {:?}", msg),
+        },
+        Subcommand::U(u) => {
+            let result = u.balance().unwrap_or_else(|e| e);
+            println!("{}", result);
+        }
     }
 }

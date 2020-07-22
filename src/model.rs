@@ -15,6 +15,10 @@ pub struct Substance {
 }
 
 impl Substance {
+    pub fn from_formula(formula: &str) -> Result<Substance, String> {
+        Substance::new(formula, 0., None)
+    }
+
     pub fn new(
         formula: &str,
         mass: f32,
