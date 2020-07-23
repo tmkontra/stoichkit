@@ -1,9 +1,8 @@
 extern crate clap;
-use clap::{App, Arg, ArgMatches, Clap};
 
+use clap::Clap;
 use itertools::Itertools;
-use std::collections::hash_map::RandomState;
-use std::collections::HashMap;
+
 use stoichkit::model::{Reaction, Substance};
 use stoichkit::solve::balance;
 
@@ -39,7 +38,7 @@ impl Unbal {
         let p: Result<Vec<Substance>, _> = self
             .substances
             .iter()
-            .dropping(*(&rx_len))
+            .dropping(rx_len)
             .map(|f| Substance::from_formula(f.as_str()))
             .collect();
         match (r.clone()?.len(), p.clone()?.len()) {
@@ -47,7 +46,6 @@ impl Unbal {
             _ => Err("Must provide at least 1 reactant and 1 product"),
         }?;
         let balanced = balance(r?, p?)?;
-        let r = format!("{:?}", balanced);
         let balr: Vec<String> = balanced
             .iter()
             .take(rx_len - 1)
@@ -78,10 +76,10 @@ impl ReactionList {
         let mut substances: Vec<Substance> = vec![];
         for (i, pair) in self.substances.chunks(2).map(|c| c.to_vec()).enumerate() {
             if pair.len() < 2 {
-                Err(format!("Got substance with no mass at position {}", i + 1))?;
+                return Err(format!("Got substance with no mass at position {}", i + 1));
             }
             let stoich: Vec<&str> = pair[0].as_str().split('*').collect();
-            let (coeff, formula) = match stoich.len() {
+            let (coeff, formula): (Option<u32>, &str) = match stoich.len() {
                 1 => (None, pair[0].as_str()),
                 2 => (
                     Some(stoich.first().unwrap().parse::<u32>().map_err(|_| {
@@ -91,9 +89,9 @@ impl ReactionList {
                             pair[0]
                         )
                     })?),
-                    stoich.last().unwrap().clone(),
+                    stoich.iter().cloned().last().unwrap(),
                 ),
-                _ => Err(format!("Invalid formula {} at position {}", pair[0], i + 1).to_string())?,
+                _ => return Err(format!("Invalid formula {} at position {}", pair[0], i + 1)),
             };
             let substance = Substance::new(
                 formula,
@@ -107,7 +105,7 @@ impl ReactionList {
         }
         let (product, reagents) = substances
             .split_last()
-            .ok_or(format!("Invalid substance list!"))?;
+            .ok_or_else(|| "Invalid substance list!".to_string())?;
         Ok(Reaction::new(reagents.to_vec(), product.to_owned()))
     }
 }

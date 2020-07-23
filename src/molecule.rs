@@ -7,17 +7,18 @@ pub fn molecular_weight(atoms: HashMap<Element, u32>) -> Result<f32, String> {
     for (element, count) in atoms {
         let mass = element.get_atomic_mass();
         trace!("Adding {:?} x {:?} for element {:?}", count, mass, element);
-        weight += mass * count.clone() as f32
+        weight += mass * count as f32
     }
     Ok(weight)
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::molecule::molecular_weight;
-    use math::round::half_up;
     use std::collections::HashMap;
 
+    use math::round::half_up;
+
+    use crate::molecule::molecular_weight;
     use crate::test_utils::e;
 
     fn round(weight: f32) -> f64 {

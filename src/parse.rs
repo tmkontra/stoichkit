@@ -20,10 +20,10 @@ fn get_element(symbol: &str) -> Result<Element, String> {
 pub fn parse_formula(formula: &str) -> Result<HashMap<Element, u32, RandomState>, String> {
     let mut stack: Vec<HashMap<Element, u32>> = vec![HashMap::new()];
     let mut i: usize = 0;
-    let N: usize = formula.len();
+    let formula_len: usize = formula.len();
     let mut broken: bool = false;
     trace!("Parsing formula {:?}", formula);
-    while i < N && !broken {
+    while i < formula_len && !broken {
         match formula.chars().nth(i).unwrap() {
             '(' | '[' | '{' => {
                 trace!("Start of group at {:?}", i);
@@ -35,7 +35,7 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<Element, u32, RandomState>
                     Some(top) => {
                         i += 1;
                         let i_start = i;
-                        while i < N && formula.chars().nth(i).unwrap().is_digit(10) {
+                        while i < formula_len && formula.chars().nth(i).unwrap().is_digit(10) {
                             i += 1;
                         }
                         let mult: u32 = match i_start == i {
@@ -50,13 +50,13 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<Element, u32, RandomState>
                             match stack.last() {
                                 Some(last) => {
                                     let curr = match last.get(&elem) {
-                                        Some(val) => val.clone(),
+                                        Some(val) => *val,
                                         None => {
                                             stack.last_mut().unwrap().insert(elem, 0).unwrap_or(0)
                                         }
                                     };
-                                    let addt = v.clone() * mult;
-                                    let new = curr.clone() + addt;
+                                    let addt = v * mult;
+                                    let new = curr + addt;
                                     stack.last_mut().unwrap().insert(elem, new);
                                 }
                                 None => broken = true,
@@ -69,14 +69,14 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<Element, u32, RandomState>
             token if token.is_ascii_alphanumeric() => {
                 let mut i_start = i;
                 i += 1;
-                while i < N && formula.chars().nth(i).unwrap().is_lowercase() {
+                while i < formula_len && formula.chars().nth(i).unwrap().is_lowercase() {
                     i += 1;
                 }
                 let name = formula.get(i_start..i).unwrap();
                 i_start = i;
                 trace!("Captured symbol {:?}", name);
                 let elem: Element = get_element(name)?;
-                while i < N && formula.chars().nth(i).unwrap().is_digit(10) {
+                while i < formula_len && formula.chars().nth(i).unwrap().is_digit(10) {
                     i += 1
                 }
                 let mult: u32 = match i_start == i {
@@ -90,7 +90,7 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<Element, u32, RandomState>
                 match stack.last() {
                     Some(last) => {
                         let curr = match last.get(&elem) {
-                            Some(val) => val.clone(),
+                            Some(val) => *val,
                             None => stack.last_mut().unwrap().insert(elem, 0).unwrap_or(0),
                         };
                         let new = curr.to_owned() + mult;
@@ -112,7 +112,6 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<Element, u32, RandomState>
         let result = stack
             .last()
             .ok_or(format!("Error parsing {}", formula))?
-            .clone()
             .to_owned();
         Ok(result)
     }
@@ -120,11 +119,13 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<Element, u32, RandomState>
 
 #[cfg(test)]
 mod tests {
-    use crate::parse::parse_formula;
-    use crate::test_utils::e;
-    use ptable::Element;
     use std::collections::hash_map::RandomState;
     use std::collections::HashMap;
+
+    use ptable::Element;
+
+    use crate::parse::parse_formula;
+    use crate::test_utils::e;
 
     #[test]
     fn ethane() {

@@ -1,9 +1,10 @@
-use crate::parse::parse_formula;
+use std::cmp::Ordering;
 use std::collections::HashMap;
 
-use crate::molecule::molecular_weight;
 use ptable::Element;
-use std::cmp::Ordering;
+
+use crate::molecule::molecular_weight;
+use crate::parse::parse_formula;
 
 #[derive(Clone, Debug)]
 pub struct Substance {
@@ -25,7 +26,7 @@ impl Substance {
         molar_coefficient: Option<u32>,
     ) -> Result<Substance, String> {
         let atoms = parse_formula(formula);
-        let molecular_weight = atoms.clone().and_then(|atoms| molecular_weight(atoms))?;
+        let molecular_weight = atoms.clone().and_then(molecular_weight)?;
         Ok(Substance {
             formula: formula.to_string(),
             mass,
