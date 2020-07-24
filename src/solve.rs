@@ -1,5 +1,5 @@
 use std::cmp::max;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use itertools::Itertools;
 use nalgebra::DMatrix;
@@ -13,17 +13,31 @@ pub fn balance(
     reagents: Vec<Substance>,
     products: Vec<Substance>,
 ) -> Result<Vec<(String, i32)>, String> {
-    let mut all_atoms: HashSet<&Element> = HashSet::new();
+    let mut reagent_atoms: HashSet<&Element> = HashSet::new();
+    let mut product_atoms: HashSet<&Element> = HashSet::new();
     for r in &reagents {
         for e in r.atoms.keys() {
-            all_atoms.insert(e);
+            reagent_atoms.insert(e);
         }
     }
     for p in &products {
         for e in p.atoms.keys() {
-            all_atoms.insert(e);
+            product_atoms.insert(e);
         }
     }
+    if !&reagent_atoms.eq(&product_atoms) {
+        let missing_products: HashSet<_> = reagent_atoms.difference(&product_atoms).collect();
+        let missing_reagents: HashSet<_> = product_atoms.difference(&reagent_atoms).collect();
+        return Err(format!(
+            "Equation cannot be balanced. Reagent elements that are not in products = {:?}. Product elements that are not in products = {:?}",
+            missing_products, missing_reagents)
+        );
+    }
+    let all_atoms: Vec<&Element> = reagent_atoms
+        .iter()
+        .chain(product_atoms.iter())
+        .cloned()
+        .collect();
     let elements: Vec<&Element> = all_atoms.iter().cloned().collect();
     let mut subs: Vec<&Substance> = Vec::new();
     let mut matrix: Vec<f64> = Vec::new();
@@ -89,7 +103,51 @@ pub fn balance(
         .map(|s| s.to_owned().formula.clone())
         .zip(&mut fin.iter().map(|c| c.to_owned()))
         .collect();
-    Ok(result)
+    let (reag, prod) = result.split_at(reagents.len());
+    if check_balance(reag.to_vec(), prod.to_vec())? {
+        Ok(result)
+    } else {
+        Err(format!("Equation could not be balanced!"))
+    }
+}
+
+fn check_balance(
+    reactants: Vec<(String, i32)>,
+    products: Vec<(String, i32)>,
+) -> Result<bool, String> {
+    let react_subs: Vec<Substance> = reactants
+        .iter()
+        .map(|(f, c)| Substance::new(f.as_str(), 0.0, Some(*c as u32)))
+        .collect::<Result<Vec<Substance>, String>>()?;
+    let prod_subs: Vec<Substance> = products
+        .iter()
+        .map(|(f, c)| Substance::new(f.as_str(), 0.0, Some(*c as u32)))
+        .collect::<Result<Vec<Substance>, String>>()?;
+    let react_elems: HashMap<Element, u32> = react_subs
+        .iter()
+        .map(|s| (&s.atoms, s.molar_coefficient))
+        .fold(HashMap::new(), |mut acc, (item, coeff)| {
+            for (e, c) in item {
+                let counter = acc.entry(e.to_owned()).or_insert(0);
+                *counter += c * coeff;
+            }
+            acc
+        });
+    let prod_elems: HashMap<Element, u32> = prod_subs
+        .iter()
+        .map(|s| (&s.atoms, s.molar_coefficient))
+        .fold(HashMap::new(), |mut acc, (item, coeff)| {
+            for (e, c) in item {
+                let counter = acc.entry(e.to_owned()).or_insert(0);
+                *counter += c * coeff;
+            }
+            acc
+        });
+    debug!(
+        "Checking balanced?: Reagent elements: {:?} === Product elements: {:?}",
+        react_elems, prod_elems
+    );
+    Ok(react_elems.eq(&prod_elems))
 }
 
 fn limit_denominator(given: &Rational, max_denominator: u32) -> Result<Rational, String> {
@@ -150,71 +208,89 @@ mod tests {
     use crate::model::*;
     use crate::solve::balance;
 
-    #[test]
-    fn test() {
-        let rg = vec![
-            Substance::new("Al", 3.0, None).unwrap(),
-            Substance::new("Cl2", 3.0, None).unwrap(),
-        ];
-        let pd = vec![Substance::new("AlCl3", 3.0, None).unwrap()];
-        let bal = balance(rg, pd).unwrap();
-        let result: Vec<(&str, i32)> = bal
+    fn _formulas_to_substances(formulas: Vec<&str>) -> Vec<Substance> {
+        formulas
             .iter()
-            .map(|(s, c)| (s.as_str(), c.to_owned()))
+            .cloned()
+            .map(|f| Substance::new(f, 1.0, None).unwrap())
+            .collect()
+    }
+
+    fn _expect_solution(reagents: Vec<&str>, products: Vec<&str>, expected: Vec<(&str, u32)>) {
+        let solution = balance(
+            _formulas_to_substances(reagents),
+            _formulas_to_substances(products),
+        )
+        .unwrap();
+        let result: Vec<(&str, u32)> = solution
+            .iter()
+            .map(|(s, c)| (s.as_str(), *c as u32))
             .collect();
-        assert_eq!(result, vec![("Al", 2), ("Cl2", 3), ("AlCl3", 2)]);
+        assert_eq!(result, expected)
+    }
+
+    #[test]
+    fn test_AlCl3() {
+        let rg = vec!["Al", "Cl2"];
+        let pd = vec!["AlCl3"];
+        let expected = vec![("Al", 2), ("Cl2", 3), ("AlCl3", 2)];
+        _expect_solution(rg, pd, expected)
     }
 
     #[test]
     // C6H5COOH + O2 = CO2 + H2O
-    fn test_2() {
-        let rg = vec![
-            Substance::new("C6H5COOH", 3.0, None).unwrap(),
-            Substance::new("O2", 3.0, None).unwrap(),
-        ];
-        let pd = vec![
-            Substance::new("CO2", 3.0, None).unwrap(),
-            Substance::new("H2O", 3.0, None).unwrap(),
-        ];
-        let bal = balance(rg, pd).unwrap();
-        let result: Vec<(&str, i32)> = bal
-            .iter()
-            .map(|(s, c)| (s.as_str(), c.to_owned()))
-            .collect();
-        assert_eq!(
-            result,
-            vec![("C6H5COOH", 2), ("O2", 15), ("CO2", 14), ("H2O", 6)]
-        );
+    fn test_CO2() {
+        let rg = vec!["C6H5COOH", "O2"];
+        let pd = vec!["CO2", "H2O"];
+        let expected = vec![("C6H5COOH", 2), ("O2", 15), ("CO2", 14), ("H2O", 6)];
+        _expect_solution(rg, pd, expected)
     }
 
     #[test]
     // KMnO4 + HCl = KCl + MnCl2 + H2O + Cl2
-    fn test_3() {
-        let rg = vec![
-            Substance::new("KMnO4", 3.0, None).unwrap(),
-            Substance::new("HCl", 3.0, None).unwrap(),
+    fn test_KMnO4() {
+        let rg = vec!["KMnO4", "HCl"];
+        let pd = vec!["KCl", "MnCl2", "H2O", "Cl2"];
+        let expected = vec![
+            ("KMnO4", 2),
+            ("HCl", 16),
+            ("KCl", 2),
+            ("MnCl2", 2),
+            ("H2O", 8),
+            ("Cl2", 5),
         ];
-        let pd = vec![
-            Substance::new("KCl", 3.0, None).unwrap(),
-            Substance::new("MnCl2", 3.0, None).unwrap(),
-            Substance::new("H2O", 3.0, None).unwrap(),
-            Substance::new("Cl2", 3.0, None).unwrap(),
-        ];
-        let bal = balance(rg, pd).unwrap();
-        let result: Vec<(&str, i32)> = bal
-            .iter()
-            .map(|(s, c)| (s.as_str(), c.to_owned()))
-            .collect();
-        assert_eq!(
-            result,
-            vec![
-                ("KMnO4", 2),
-                ("HCl", 16),
-                ("KCl", 2),
-                ("MnCl2", 2),
-                ("H2O", 8),
-                ("Cl2", 5)
-            ]
-        );
+        _expect_solution(rg, pd, expected)
+    }
+
+    #[test]
+    fn test_H2O() {
+        let rg = vec!["H2", "O2"];
+        let pd = vec!["H2O"];
+        let expected = vec![("H2", 2), ("O2", 1), ("H2O", 2)];
+        _expect_solution(rg, pd, expected)
+    }
+
+    #[test]
+    fn test_missing_products() {
+        //Fe3 + Cl5 = Cl2Fe5H2O
+        let rg = vec!["Fe3", "Cl5"];
+        let pd = vec!["Cl2Fe5H2O"];
+        let result = balance(_formulas_to_substances(rg), _formulas_to_substances(pd));
+        assert!(
+            result.is_err(),
+            format!("Balance solution was not Err: {:?}", result),
+        )
+    }
+
+    #[test]
+    fn test_impossible_reaction() {
+        // H2O + NO2 = HNO3
+        let rg = vec!["H2O", "NO2"];
+        let pd = vec!["HNO3"];
+        let result = balance(_formulas_to_substances(rg), _formulas_to_substances(pd));
+        assert!(
+            result.is_err(),
+            format!("Balance solution was not Err: {:?}", result),
+        )
     }
 }

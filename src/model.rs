@@ -12,7 +12,7 @@ pub struct Substance {
     mass: f32,
     pub atoms: HashMap<Element, u32>,
     molar_mass: f32,
-    molar_coefficient: u32,
+    pub molar_coefficient: u32,
 }
 
 impl Substance {
