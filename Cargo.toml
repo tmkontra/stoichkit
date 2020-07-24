@@ -27,7 +27,7 @@ nalgebra = "0.21.1"
 ndarray = "0.13"
 ndarray-linalg = { version = "0.12" }
 blas = "0.20"
-openblas-src = { version = "0.9", features = ["system"]}
+openblas-src = { version = "0.9", features = ["static"]}
 
 rug = "1.9.0"
 ptable = "0.3.2"

@@ -39,23 +39,21 @@ pub fn balance(
         .cloned()
         .collect();
     let elements: Vec<&Element> = all_atoms.iter().cloned().collect();
-    let mut subs: Vec<&Substance> = Vec::new();
+    let mut substances: Vec<Substance> = Vec::new();
     let mut matrix: Vec<f64> = Vec::new();
     debug!("Building matrix");
+    let mut push_atom = |input_substances: &Vec<&Substance>, element: &Element| {
+        for substance in input_substances {
+            substances.push(substance.to_owned().to_owned());
+            let coefficient = substance.atoms.get(element).cloned().unwrap_or(0 as u32);
+            trace!("Pushing {:?}*{:?} from {:?}", coefficient, element, substance);
+            matrix.push(coefficient as f64);
+        }
+    };
     for element in all_atoms.iter() {
         debug!("Getting coefficients for {:?}", element);
-        for rge in &reagents {
-            subs.push(rge);
-            let rxe = rge.atoms.get(element).cloned().unwrap_or(0 as u32);
-            trace!("Pushing {:?}*{:?} from {:?}", rxe, element, rge);
-            matrix.push(rxe as f64);
-        }
-        for pde in &products {
-            subs.push(pde);
-            let rxe = pde.atoms.get(element).cloned().unwrap_or(0 as u32);
-            trace!("Pushing {:?}*{:?} from {:?}", rxe, element, pde);
-            matrix.push(rxe as f64);
-        }
+        push_atom(&reagents.iter().collect(), element);
+        push_atom(&products.iter().collect(), element);
     }
     debug!("Constructing matrix");
     let mx = DMatrix::from_row_slice(
@@ -67,41 +65,46 @@ pub fn balance(
     let (a, b) = mx.columns_range_pair(0..c, c..);
     let x = a.svd(true, true);
     debug!("Solving equation system");
-    let solve = x.solve(&b, 0.0).unwrap();
-    let c: Vec<f32> = solve.column(0).iter().map(|c| *c as f32).collect();
-    let fc: Vec<Rational> = c
+    let solution = x.solve(&b, 0.0).unwrap();
+    debug!("Solution: {:?}", solution);
+    let coefficients: Vec<f32> = solution.column(0).iter().map(|c| *c as f32).collect();
+    debug!("Got solution coefficients: {:?}", coefficients);
+    let rational_coeffs: Vec<Rational> = coefficients
         .iter()
         .cloned()
-        .map(|c| Rational::from_f32(c).ok_or(format!("Could not rational: {:?}", c)))
-        .collect::<Result<Vec<Rational>, String>>()?
-        .iter()
-        .cloned()
-        .map(|r| limit_denominator(&r.abs(), 100))
+        .map(|c| {
+            Rational::from_f32(c)
+                .ok_or(format!("Could not rational: {:?}", c))
+                .and_then(|r| limit_denominator(&r.abs(), 100))
+        })
         .collect::<Result<Vec<Rational>, String>>()?;
-    let denoms: Vec<_> = fc.iter().map(|c| c.denom()).collect();
-    let mult = denoms
+    let denominators: Vec<_> = rational_coeffs
         .iter()
         .cloned()
-        .map(|i| i.to_i32().ok_or_else(|| "Could not balance!".to_string()))
-        .collect::<Result<Vec<i32>, String>>()?
+        .map(|c| {
+            c.denom().to_i32()
+                .ok_or_else(|| "Could not balance!".to_string())
+        })
+        .collect::<Result<Vec<i32>, String>>()?;
+    let scale = denominators
         .iter()
         .cloned()
         .combinations(2)
         .fold(1 as i32, |mult, cur| max(mult, lcm(cur[0], cur[1])));
-    let mut fin: Vec<i32> = fc
+    let mut scaled_coeffs: Vec<i32> = rational_coeffs
         .iter()
-        .map(|f| f * Rational::from((mult, 1)))
+        .map(|f| f * Rational::from((scale, 1)))
         .map(|f| {
             f.numer()
                 .to_i32()
-                .ok_or_else(|| "Could not i32".to_string())
+                .ok_or_else(|| format!("Could not i32 {:?}", &f.numer()))
         })
         .collect::<Result<Vec<i32>, String>>()?;
-    fin.push(mult);
-    let result: Vec<(String, i32)> = subs
+    scaled_coeffs.push(scale);
+    let result: Vec<(String, i32)> = substances
         .iter()
         .map(|s| s.to_owned().formula.clone())
-        .zip(&mut fin.iter().map(|c| c.to_owned()))
+        .zip(&mut scaled_coeffs.iter().map(|c| c.to_owned()))
         .collect();
     let (reag, prod) = result.split_at(reagents.len());
     if check_balance(reag.to_vec(), prod.to_vec())? {
@@ -204,6 +207,7 @@ fn limit_denominator(given: &Rational, max_denominator: u32) -> Result<Rational,
 }
 
 #[cfg(test)]
+#[allow(non_snake_case)]
 mod tests {
     use crate::model::*;
     use crate::solve::balance;
