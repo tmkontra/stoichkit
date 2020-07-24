@@ -758,7 +758,7 @@ dependencies = [
 
 [[package]]
 name = "stoichkit"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "blas",
  "clap",

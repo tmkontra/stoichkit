@@ -60,13 +60,10 @@ impl Unbal {
 }
 
 #[derive(Clap)]
-#[clap(version = "0.2.3")]
+#[clap(version = "0.1.0")]
 struct Cli {
     #[clap(subcommand)]
-    subcmd: Subcommand,
-    //
-    // #[clap(subcommand)]
-    // bal: Unbal
+    command: Subcommand,
 }
 
 impl ReactionList {
@@ -126,7 +123,7 @@ impl ReactionList {
 fn main() {
     env_logger::Builder::from_env("STOICHKIT_LOG").init();
     let opts: Cli = Cli::parse();
-    match opts.subcmd {
+    match opts.command {
         Subcommand::Yield(r) => match r.reaction().map(|r| r.percent_yield()) {
             Ok(yld) => println!("Yield: {:?}", yld),
             Err(msg) => println!("ERROR: {:?}", msg),
