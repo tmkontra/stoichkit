@@ -74,10 +74,10 @@ pub fn balance(
     let (a, b) = mx.columns_range_pair(0..c, c..);
     let x = a.svd(true, true);
     debug!("Solving equation system");
-    let solution = x.solve(&b, 0.0).unwrap();
+    let solution = x.solve(&b, 0.0)?;
     debug!("Solution: {:?}", solution);
-    let coefficients: Vec<f64> =
-        solution.column(0).iter().map(|c| *c as f64).collect();
+    let coefficients: Vec<f32> =
+        solution.column(0).iter().map(|c| *c as f32).collect();
     debug!("Got solution coefficients: {:?}", &coefficients);
     trace!("Converting to rationals");
     let rational_coeffs: Vec<Rational> = coefficients
@@ -85,7 +85,7 @@ pub fn balance(
         .cloned()
         .map(|c| {
             trace!("Constructing rational from {:?}", &c);
-            Rational::from_f64(c).ok_or_else(|| {
+            Rational::from_f32(c).ok_or_else(|| {
                 format!("Could not construct rational from: {:?}", &c)
             })
         })
