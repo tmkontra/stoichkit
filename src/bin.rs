@@ -28,24 +28,24 @@ struct Unbal {
 
 impl Unbal {
     pub fn balance(&self) -> Result<String, String> {
-        let r: Result<Vec<Substance>, _> = self
+        let reagent_input: Result<Vec<Substance>, _> = self
             .substances
             .iter()
             .take_while(|a| a.as_str() != "=")
             .map(|f| Substance::from_formula(f.as_str()))
             .collect();
-        let rx_len = r.clone()?.len() + 1;
-        let p: Result<Vec<Substance>, _> = self
+        let rx_len = reagent_input.clone()?.len() + 1;
+        let product_input: Result<Vec<Substance>, _> = self
             .substances
             .iter()
             .dropping(rx_len)
             .map(|f| Substance::from_formula(f.as_str()))
             .collect();
-        match (r.clone()?.len(), p.clone()?.len()) {
+        match (reagent_input.clone()?.len(), product_input.clone()?.len()) {
             (x, y) if x >= 1 as usize && y >= 1 as usize => Ok(()),
             _ => Err("Must provide at least 1 reactant and 1 product"),
         }?;
-        let (reagents, products) = balance(r?, p?)?;
+        let (reagents, products) = balance(reagent_input?, product_input?)?;
         let balr: Vec<String> = reagents
             .iter()
             .map(|(e, c)| format!("{} {}", c, e))
