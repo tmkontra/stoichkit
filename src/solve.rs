@@ -12,7 +12,7 @@ use crate::model::Substance;
 pub fn balance(
     reagents: Vec<Substance>,
     products: Vec<Substance>,
-) -> Result<(Vec<(String, i32)>, Vec<(String, i32)>), String> {
+) -> Result<(Vec<(String, u32)>, Vec<(String, u32)>), String> {
     let mut reagent_atoms: HashSet<&Element> = HashSet::new();
     let mut product_atoms: HashSet<&Element> = HashSet::new();
     for r in &reagents {
@@ -76,45 +76,47 @@ pub fn balance(
     debug!("Solving equation system");
     let solution = x.solve(&b, 0.0).unwrap();
     debug!("Solution: {:?}", solution);
-    let coefficients: Vec<f32> =
-        solution.column(0).iter().map(|c| *c as f32).collect();
-    debug!("Got solution coefficients: {:?}", coefficients);
+    let coefficients: Vec<f64> =
+        solution.column(0).iter().map(|c| *c as f64).collect();
+    debug!("Got solution coefficients: {:?}", &coefficients);
+    trace!("Converting to rationals");
     let rational_coeffs: Vec<Rational> = coefficients
         .iter()
         .cloned()
         .map(|c| {
-            Rational::from_f32(c)
-                .ok_or(format!("Could not rational: {:?}", c))
+            Rational::from_f64(c)
+                .ok_or(format!("Could not construct rational from: {:?}", c))
                 .and_then(|r| limit_denominator(&r.abs(), 100))
         })
         .collect::<Result<Vec<Rational>, String>>()?;
-    let denominators: Vec<_> = rational_coeffs
+    trace!("Got rational coefficients: {:?}", &rational_coeffs);
+    let denominators: Vec<u32> = rational_coeffs
         .iter()
         .cloned()
         .map(|c| {
-            c.denom()
-                .to_i32()
-                .ok_or_else(|| "Could not balance!".to_string())
+            c.denom().to_u32().ok_or_else(|| {
+                format!("Could not convert {:?} to u32!", &c.denom())
+            })
         })
-        .collect::<Result<Vec<i32>, String>>()?;
-    debug!("Got denominators: {:?}", denominators);
-    let scale: i32 = denominators
+        .collect::<Result<Vec<u32>, String>>()?;
+    trace!("Got denominators: {:?}", &denominators);
+    let scale: u32 = denominators
         .iter()
         .cloned()
         .combinations(2)
-        .fold(1 as i32, |acc, cur| max(acc, lcm(cur[0], cur[1])));
+        .fold(1, |acc, cur| max(acc, lcm(cur[0] as u32, cur[1] as u32)));
     debug!("Scaling coefficients by: {}", scale);
-    let mut scaled_coeffs: Vec<i32> = rational_coeffs
+    let mut scaled_coeffs: Vec<u32> = rational_coeffs
         .iter()
         .map(|f| f * Rational::from((scale, 1)))
         .map(|f| {
-            f.numer()
-                .to_i32()
-                .ok_or_else(|| format!("Could not i32 {:?}", &f.numer()))
+            f.numer().to_u32().ok_or_else(|| {
+                format!("Could not convert {:?} to u32", &f.numer())
+            })
         })
-        .collect::<Result<Vec<i32>, String>>()?;
+        .collect::<Result<Vec<u32>, String>>()?;
     scaled_coeffs.push(scale);
-    let result: Vec<(String, i32)> = substances
+    let result: Vec<(String, u32)> = substances
         .iter()
         .map(|s| s.to_owned().formula.clone())
         .zip(&mut scaled_coeffs.iter().map(|c| c.to_owned()))
@@ -128,8 +130,8 @@ pub fn balance(
 }
 
 fn check_balance(
-    reactants: Vec<(String, i32)>,
-    products: Vec<(String, i32)>,
+    reactants: Vec<(String, u32)>,
+    products: Vec<(String, u32)>,
 ) -> Result<bool, String> {
     let react_subs: Vec<Substance> = reactants
         .iter()
@@ -168,7 +170,7 @@ fn check_balance(
 
 fn limit_denominator(
     given: &Rational,
-    max_denominator: u32,
+    max_denominator: u64,
 ) -> Result<Rational, String> {
     debug!(
         "Limiting denom for {:?} to at most {:?}",
@@ -177,39 +179,39 @@ fn limit_denominator(
     if max_denominator < 1 || given.denom() <= &max_denominator {
         Ok(given.to_owned())
     } else {
-        let (mut p0, mut q0, mut p1, mut q1) = (0, 1, 1, 0);
+        let (mut p0, mut q0, mut p1, mut q1) = (0u64, 1u64, 1u64, 0u64);
         let (mut n, mut d) = (
             given
                 .numer()
-                .to_i32()
+                .to_u64()
                 .ok_or_else(|| format!("No numerator for: {:?}", given))?,
             given
                 .denom()
-                .to_i32()
+                .to_u64()
                 .ok_or_else(|| format!("No denominator for: {:?}", given))?,
         );
-        let mut a: i32;
-        let mut q2: i32;
+        let mut a: u64;
+        let mut q2: u64;
         loop {
             a = n / d;
             q2 = q0 + (a * q1);
-            if q2 > max_denominator as i32 {
+            if q2 > max_denominator {
                 break;
             }
-            let p0_new: i32 = p1;
-            let q0_new: i32 = q1;
-            let p1_new: i32 = p0 + (a * p1);
-            let q1_new: i32 = q2;
+            let p0_new: u64 = p1;
+            let q0_new: u64 = q1;
+            let p1_new: u64 = p0 + (a * p1);
+            let q1_new: u64 = q2;
             p0 = p0_new;
             q0 = q0_new;
             p1 = p1_new;
             q1 = q1_new;
-            let n_new: i32 = d;
-            let d_new: i32 = n - (a * d);
+            let n_new: u64 = d;
+            let d_new: u64 = n - (a * d);
             n = n_new;
             d = d_new;
         }
-        let k = (max_denominator as i32 - q0) / q1;
+        let k = (max_denominator - q0) / q1;
         let bound1: Rational = Rational::from((p0 + k * p1, q0 + k * q1));
         let bound2: Rational = Rational::from((p1, q1));
         let d1f: Rational = bound1.clone() - given;
