@@ -84,13 +84,21 @@ pub fn balance(
         .iter()
         .cloned()
         .map(|c| {
-            Rational::from_f64(c)
-                .ok_or(format!("Could not construct rational from: {:?}", c))
-                .and_then(|r| limit_denominator(&r.abs(), 100))
+            trace!("Constructing rational from {:?}", &c);
+            Rational::from_f64(c).ok_or_else(|| {
+                format!("Could not construct rational from: {:?}", &c)
+            })
         })
         .collect::<Result<Vec<Rational>, String>>()?;
     trace!("Got rational coefficients: {:?}", &rational_coeffs);
-    let denominators: Vec<u32> = rational_coeffs
+    trace!("Limiting denominators");
+    let rational_limited: Vec<Rational> = rational_coeffs
+        .iter()
+        .cloned()
+        .map(|r| limit_denominator(&r.abs(), 100))
+        .collect::<Result<Vec<Rational>, String>>()?;
+    trace!("Limited rational coefficients: {:?}", rational_limited);
+    let denominators: Vec<u32> = rational_limited
         .iter()
         .cloned()
         .map(|c| {
@@ -173,7 +181,7 @@ fn limit_denominator(
     max_denominator: u64,
 ) -> Result<Rational, String> {
     debug!(
-        "Limiting denom for {:?} to at most {:?}",
+        "Limiting denominator for {:?} to at most {:?}",
         given, max_denominator
     );
     if max_denominator < 1 || given.denom() <= &max_denominator {
