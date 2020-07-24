@@ -62,7 +62,7 @@ impl Unbal {
 }
 
 #[derive(Clap)]
-#[clap(version = "0.2.2")]
+#[clap(version = "0.2.3")]
 struct Cli {
     #[clap(subcommand)]
     subcmd: Subcommand,
