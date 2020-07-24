@@ -12,7 +12,7 @@ use crate::model::Substance;
 pub fn balance(
     reagents: Vec<Substance>,
     products: Vec<Substance>,
-) -> Result<Vec<(String, i32)>, String> {
+) -> Result<(Vec<(String, i32)>, Vec<(String, i32)>), String> {
     let mut reagent_atoms: HashSet<&Element> = HashSet::new();
     let mut product_atoms: HashSet<&Element> = HashSet::new();
     for r in &reagents {
@@ -97,11 +97,13 @@ pub fn balance(
                 .ok_or_else(|| "Could not balance!".to_string())
         })
         .collect::<Result<Vec<i32>, String>>()?;
-    let scale = denominators
+    debug!("Got denominators: {:?}", denominators);
+    let scale: i32 = denominators
         .iter()
         .cloned()
         .combinations(2)
-        .fold(1 as i32, |mult, cur| max(mult, lcm(cur[0], cur[1])));
+        .fold(1 as i32, |acc, cur| max(acc, lcm(cur[0], cur[1])));
+    debug!("Scaling coefficients by: {}", scale);
     let mut scaled_coeffs: Vec<i32> = rational_coeffs
         .iter()
         .map(|f| f * Rational::from((scale, 1)))
@@ -117,9 +119,9 @@ pub fn balance(
         .map(|s| s.to_owned().formula.clone())
         .zip(&mut scaled_coeffs.iter().map(|c| c.to_owned()))
         .collect();
-    let (reag, prod) = result.split_at(reagents.len());
-    if check_balance(reag.to_vec(), prod.to_vec())? {
-        Ok(result)
+    let (reagents_result, products_result) = result.split_at(reagents.len());
+    if check_balance(reagents_result.to_vec(), products_result.to_vec())? {
+        Ok((reagents_result.to_vec(), products_result.to_vec()))
     } else {
         Err(format!("Equation could not be balanced!"))
     }
@@ -245,7 +247,10 @@ mod tests {
         )
         .unwrap();
         let result: Vec<(&str, u32)> = solution
+            .0
             .iter()
+            .chain(solution.1.iter())
+            .into_iter()
             .map(|(s, c)| (s.as_str(), *c as u32))
             .collect();
         assert_eq!(result, expected)

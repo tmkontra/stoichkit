@@ -45,15 +45,13 @@ impl Unbal {
             (x, y) if x >= 1 as usize && y >= 1 as usize => Ok(()),
             _ => Err("Must provide at least 1 reactant and 1 product"),
         }?;
-        let balanced = balance(r?, p?)?;
-        let balr: Vec<String> = balanced
+        let (reagents, products) = balance(r?, p?)?;
+        let balr: Vec<String> = reagents
             .iter()
-            .take(rx_len - 1)
             .map(|(e, c)| format!("{} {}", c, e))
             .collect();
-        let balp: Vec<String> = balanced
+        let balp: Vec<String> = products
             .iter()
-            .dropping(rx_len - 1)
             .map(|(e, c)| format!("{} {}", c, e))
             .collect();
         let result = format!("{} = {}", balr.join(" + "), balp.join(" + "));
