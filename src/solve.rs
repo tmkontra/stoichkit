@@ -12,7 +12,7 @@ use crate::model::Substance;
 pub fn balance(
     reagents: Vec<Substance>,
     products: Vec<Substance>,
-) -> Result<(Vec<(String, u32)>, Vec<(String, u32)>), String> {
+) -> Result<(Vec<(String, u64)>, Vec<(String, u64)>), String> {
     let mut reagent_atoms: HashSet<&Element> = HashSet::new();
     let mut product_atoms: HashSet<&Element> = HashSet::new();
     for r in &reagents {
@@ -98,33 +98,37 @@ pub fn balance(
         .map(|r| limit_denominator(&r.abs(), 100))
         .collect::<Result<Vec<Rational>, String>>()?;
     trace!("Limited rational coefficients: {:?}", rational_limited);
-    let denominators: Vec<u32> = rational_limited
+    let denominators: Vec<u64> = rational_limited
         .iter()
         .cloned()
         .map(|c| {
-            c.denom().to_u32().ok_or_else(|| {
-                format!("Could not convert {:?} to u32!", &c.denom())
+            c.denom().to_u64().ok_or_else(|| {
+                format!(
+                    "Could not convert denominator {:?} to u64!",
+                    &c.denom()
+                )
             })
         })
-        .collect::<Result<Vec<u32>, String>>()?;
+        .collect::<Result<Vec<u64>, String>>()?;
     trace!("Got denominators: {:?}", &denominators);
-    let scale: u32 = denominators
+    let scale: u64 = denominators
         .iter()
         .cloned()
         .combinations(2)
-        .fold(1, |acc, cur| max(acc, lcm(cur[0] as u32, cur[1] as u32)));
+        .fold(1, |acc, cur| max(acc, lcm(cur[0] as u64, cur[1] as u64)));
     debug!("Scaling coefficients by: {}", scale);
-    let mut scaled_coeffs: Vec<u32> = rational_coeffs
+    let mut scaled_coeffs: Vec<u64> = rational_limited
         .iter()
         .map(|f| f * Rational::from((scale, 1)))
         .map(|f| {
-            f.numer().to_u32().ok_or_else(|| {
-                format!("Could not convert {:?} to u32", &f.numer())
+            f.numer().to_u64().ok_or_else(|| {
+                format!("Could not convert scaled {:?} to u64", &f.numer())
             })
         })
-        .collect::<Result<Vec<u32>, String>>()?;
+        .collect::<Result<Vec<u64>, String>>()?;
     scaled_coeffs.push(scale);
-    let result: Vec<(String, u32)> = substances
+    trace!("Got scaled coefficients: {:?}", scaled_coeffs);
+    let result: Vec<(String, u64)> = substances
         .iter()
         .map(|s| s.to_owned().formula.clone())
         .zip(&mut scaled_coeffs.iter().map(|c| c.to_owned()))
@@ -138,8 +142,8 @@ pub fn balance(
 }
 
 fn check_balance(
-    reactants: Vec<(String, u32)>,
-    products: Vec<(String, u32)>,
+    reactants: Vec<(String, u64)>,
+    products: Vec<(String, u64)>,
 ) -> Result<bool, String> {
     let react_subs: Vec<Substance> = reactants
         .iter()
@@ -149,23 +153,23 @@ fn check_balance(
         .iter()
         .map(|(f, c)| Substance::new(f.as_str(), 0.0, Some(*c as u32)))
         .collect::<Result<Vec<Substance>, String>>()?;
-    let react_elems: HashMap<Element, u32> = react_subs
+    let react_elems: HashMap<Element, u64> = react_subs
         .iter()
         .map(|s| (&s.atoms, s.molar_coefficient))
         .fold(HashMap::new(), |mut acc, (item, coeff)| {
             for (e, c) in item {
                 let counter = acc.entry(e.to_owned()).or_insert(0);
-                *counter += c * coeff;
+                *counter += *c as u64 * coeff as u64;
             }
             acc
         });
-    let prod_elems: HashMap<Element, u32> = prod_subs
+    let prod_elems: HashMap<Element, u64> = prod_subs
         .iter()
         .map(|s| (&s.atoms, s.molar_coefficient))
         .fold(HashMap::new(), |mut acc, (item, coeff)| {
             for (e, c) in item {
                 let counter = acc.entry(e.to_owned()).or_insert(0);
-                *counter += c * coeff;
+                *counter += *c as u64 * coeff as u64;
             }
             acc
         });
