@@ -17,7 +17,9 @@ fn get_element(symbol: &str) -> Result<Element, String> {
 }
 
 // translated from https://leetcode.com/articles/number-of-atoms/#
-pub fn parse_formula(formula: &str) -> Result<HashMap<Element, u32, RandomState>, String> {
+pub fn parse_formula(
+    formula: &str,
+) -> Result<HashMap<Element, u32, RandomState>, String> {
     let mut stack: Vec<HashMap<Element, u32>> = vec![HashMap::new()];
     let mut i: usize = 0;
     let formula_len: usize = formula.len();
@@ -35,25 +37,34 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<Element, u32, RandomState>
                     Some(top) => {
                         i += 1;
                         let i_start = i;
-                        while i < formula_len && formula.chars().nth(i).unwrap().is_digit(10) {
+                        while i < formula_len
+                            && formula.chars().nth(i).unwrap().is_digit(10)
+                        {
                             i += 1;
                         }
                         let mult: u32 = match i_start == i {
                             true => 1,
                             false => {
-                                let multiplicity_str = formula.get(i_start..i).unwrap();
+                                let multiplicity_str =
+                                    formula.get(i_start..i).unwrap();
                                 multiplicity_str.parse::<u32>().unwrap()
                             }
                         };
-                        trace!("Got multiplicity {:?} for group {:?}", mult, top);
+                        trace!(
+                            "Got multiplicity {:?} for group {:?}",
+                            mult,
+                            top
+                        );
                         for (elem, v) in top {
                             match stack.last() {
                                 Some(last) => {
                                     let curr = match last.get(&elem) {
                                         Some(val) => *val,
-                                        None => {
-                                            stack.last_mut().unwrap().insert(elem, 0).unwrap_or(0)
-                                        }
+                                        None => stack
+                                            .last_mut()
+                                            .unwrap()
+                                            .insert(elem, 0)
+                                            .unwrap_or(0),
                                     };
                                     let addt = v * mult;
                                     let new = curr + addt;
@@ -69,14 +80,18 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<Element, u32, RandomState>
             token if token.is_ascii_alphanumeric() => {
                 let mut i_start = i;
                 i += 1;
-                while i < formula_len && formula.chars().nth(i).unwrap().is_lowercase() {
+                while i < formula_len
+                    && formula.chars().nth(i).unwrap().is_lowercase()
+                {
                     i += 1;
                 }
                 let name = formula.get(i_start..i).unwrap();
                 i_start = i;
                 trace!("Captured symbol {:?}", name);
                 let elem: Element = get_element(name)?;
-                while i < formula_len && formula.chars().nth(i).unwrap().is_digit(10) {
+                while i < formula_len
+                    && formula.chars().nth(i).unwrap().is_digit(10)
+                {
                     i += 1
                 }
                 let mult: u32 = match i_start == i {
@@ -91,7 +106,11 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<Element, u32, RandomState>
                     Some(last) => {
                         let curr = match last.get(&elem) {
                             Some(val) => *val,
-                            None => stack.last_mut().unwrap().insert(elem, 0).unwrap_or(0),
+                            None => stack
+                                .last_mut()
+                                .unwrap()
+                                .insert(elem, 0)
+                                .unwrap_or(0),
                         };
                         let new = curr.to_owned() + mult;
                         stack.last_mut().unwrap().insert(elem, new);
@@ -100,7 +119,10 @@ pub fn parse_formula(formula: &str) -> Result<HashMap<Element, u32, RandomState>
                 }
             }
             invalid => {
-                error!("Got invalid character {:?} in formula {}", invalid, formula);
+                error!(
+                    "Got invalid character {:?} in formula {}",
+                    invalid, formula
+                );
                 broken = true;
             }
         }
@@ -131,7 +153,8 @@ mod tests {
     fn ethane() {
         let formula = "C2H6";
         let result = parse_formula(formula).ok().unwrap();
-        let expected: HashMap<&str, u32> = [("C", 2), ("H", 6)].iter().cloned().collect();
+        let expected: HashMap<&str, u32> =
+            [("C", 2), ("H", 6)].iter().cloned().collect();
         assert_eq!(result, e(expected));
     }
 
@@ -139,10 +162,11 @@ mod tests {
     fn nickel_tert_butoxide() {
         let formula = "Ni[OC(CH3)3]2";
         let result = parse_formula(formula).ok().unwrap();
-        let expected: HashMap<&str, u32> = [("Ni", 1), ("O", 2), ("C", 8), ("H", 18)]
-            .iter()
-            .cloned()
-            .collect();
+        let expected: HashMap<&str, u32> =
+            [("Ni", 1), ("O", 2), ("C", 8), ("H", 18)]
+                .iter()
+                .cloned()
+                .collect();
         assert_eq!(result, e(expected));
     }
 
@@ -164,8 +188,10 @@ mod tests {
     #[test]
     fn mismatched_bracket_types() {
         let formula: &str = "{C2H6)12";
-        let result: HashMap<Element, u32, RandomState> = parse_formula(formula).ok().unwrap();
-        let expected: HashMap<&str, u32> = [("C", 24), ("H", 72)].iter().cloned().collect();
+        let result: HashMap<Element, u32, RandomState> =
+            parse_formula(formula).ok().unwrap();
+        let expected: HashMap<&str, u32> =
+            [("C", 24), ("H", 72)].iter().cloned().collect();
         assert_eq!(result, e(expected));
     }
 

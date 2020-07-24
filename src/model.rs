@@ -74,7 +74,8 @@ impl Reaction {
         let limiting = self.limiting_reagent();
         trace!("{} moles of limiting reagent", limiting.moles());
         let exp_moles = limiting.moles()
-            * (self.product.molar_coefficient as f32 / limiting.molar_coefficient as f32);
+            * (self.product.molar_coefficient as f32
+                / limiting.molar_coefficient as f32);
         debug!("Theoretical moles of product: {}", exp_moles);
         let exp_grams = exp_moles * self.product.molar_mass;
         debug!("Theoretical yield of product (g): {}", exp_grams);

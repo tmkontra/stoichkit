@@ -74,31 +74,46 @@ struct Cli {
 impl ReactionList {
     pub fn reaction(&self) -> Result<Reaction, String> {
         let mut substances: Vec<Substance> = vec![];
-        for (i, pair) in self.substances.chunks(2).map(|c| c.to_vec()).enumerate() {
+        for (i, pair) in
+            self.substances.chunks(2).map(|c| c.to_vec()).enumerate()
+        {
             if pair.len() < 2 {
-                return Err(format!("Got substance with no mass at position {}", i + 1));
+                return Err(format!(
+                    "Got substance with no mass at position {}",
+                    i + 1
+                ));
             }
             let stoich: Vec<&str> = pair[0].as_str().split('*').collect();
             let (coeff, formula): (Option<u32>, &str) = match stoich.len() {
                 1 => (None, pair[0].as_str()),
                 2 => (
-                    Some(stoich.first().unwrap().parse::<u32>().map_err(|_| {
-                        format!(
-                            "Invalid coeffcieint {} for substance {}",
-                            stoich.first().unwrap(),
-                            pair[0]
-                        )
-                    })?),
+                    Some(stoich.first().unwrap().parse::<u32>().map_err(
+                        |_| {
+                            format!(
+                                "Invalid coeffcieint {} for substance {}",
+                                stoich.first().unwrap(),
+                                pair[0]
+                            )
+                        },
+                    )?),
                     stoich.iter().cloned().last().unwrap(),
                 ),
-                _ => return Err(format!("Invalid formula {} at position {}", pair[0], i + 1)),
+                _ => {
+                    return Err(format!(
+                        "Invalid formula {} at position {}",
+                        pair[0],
+                        i + 1
+                    ))
+                }
             };
             let substance = Substance::new(
                 formula,
-                pair[1]
-                    .clone()
-                    .parse::<f32>()
-                    .map_err(|_| format!("Invalid mass {} for substance {}", pair[1], pair[0]))?,
+                pair[1].clone().parse::<f32>().map_err(|_| {
+                    format!(
+                        "Invalid mass {} for substance {}",
+                        pair[1], pair[0]
+                    )
+                })?,
                 coeff,
             )?;
             substances.push(substance);

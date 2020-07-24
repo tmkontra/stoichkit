@@ -26,8 +26,10 @@ pub fn balance(
         }
     }
     if !&reagent_atoms.eq(&product_atoms) {
-        let missing_products: HashSet<_> = reagent_atoms.difference(&product_atoms).collect();
-        let missing_reagents: HashSet<_> = product_atoms.difference(&reagent_atoms).collect();
+        let missing_products: HashSet<_> =
+            reagent_atoms.difference(&product_atoms).collect();
+        let missing_reagents: HashSet<_> =
+            product_atoms.difference(&reagent_atoms).collect();
         return Err(format!(
             "Equation cannot be balanced. Reagent elements that are not in products = {:?}. Product elements that are not in products = {:?}",
             missing_products, missing_reagents)
@@ -42,11 +44,18 @@ pub fn balance(
     let mut substances: Vec<Substance> = Vec::new();
     let mut matrix: Vec<f64> = Vec::new();
     debug!("Building matrix");
-    let mut push_atom = |input_substances: &Vec<&Substance>, element: &Element| {
+    let mut push_atom = |input_substances: &Vec<&Substance>,
+                         element: &Element| {
         for substance in input_substances {
             substances.push(substance.to_owned().to_owned());
-            let coefficient = substance.atoms.get(element).cloned().unwrap_or(0 as u32);
-            trace!("Pushing {:?}*{:?} from {:?}", coefficient, element, substance);
+            let coefficient =
+                substance.atoms.get(element).cloned().unwrap_or(0 as u32);
+            trace!(
+                "Pushing {:?}*{:?} from {:?}",
+                coefficient,
+                element,
+                substance
+            );
             matrix.push(coefficient as f64);
         }
     };
@@ -67,7 +76,8 @@ pub fn balance(
     debug!("Solving equation system");
     let solution = x.solve(&b, 0.0).unwrap();
     debug!("Solution: {:?}", solution);
-    let coefficients: Vec<f32> = solution.column(0).iter().map(|c| *c as f32).collect();
+    let coefficients: Vec<f32> =
+        solution.column(0).iter().map(|c| *c as f32).collect();
     debug!("Got solution coefficients: {:?}", coefficients);
     let rational_coeffs: Vec<Rational> = coefficients
         .iter()
@@ -82,7 +92,8 @@ pub fn balance(
         .iter()
         .cloned()
         .map(|c| {
-            c.denom().to_i32()
+            c.denom()
+                .to_i32()
                 .ok_or_else(|| "Could not balance!".to_string())
         })
         .collect::<Result<Vec<i32>, String>>()?;
@@ -153,7 +164,10 @@ fn check_balance(
     Ok(react_elems.eq(&prod_elems))
 }
 
-fn limit_denominator(given: &Rational, max_denominator: u32) -> Result<Rational, String> {
+fn limit_denominator(
+    given: &Rational,
+    max_denominator: u32,
+) -> Result<Rational, String> {
     debug!(
         "Limiting denom for {:?} to at most {:?}",
         given, max_denominator
@@ -220,7 +234,11 @@ mod tests {
             .collect()
     }
 
-    fn _expect_solution(reagents: Vec<&str>, products: Vec<&str>, expected: Vec<(&str, u32)>) {
+    fn _expect_solution(
+        reagents: Vec<&str>,
+        products: Vec<&str>,
+        expected: Vec<(&str, u32)>,
+    ) {
         let solution = balance(
             _formulas_to_substances(reagents),
             _formulas_to_substances(products),
@@ -246,7 +264,8 @@ mod tests {
     fn test_CO2() {
         let rg = vec!["C6H5COOH", "O2"];
         let pd = vec!["CO2", "H2O"];
-        let expected = vec![("C6H5COOH", 2), ("O2", 15), ("CO2", 14), ("H2O", 6)];
+        let expected =
+            vec![("C6H5COOH", 2), ("O2", 15), ("CO2", 14), ("H2O", 6)];
         _expect_solution(rg, pd, expected)
     }
 
@@ -279,7 +298,8 @@ mod tests {
         //Fe3 + Cl5 = Cl2Fe5H2O
         let rg = vec!["Fe3", "Cl5"];
         let pd = vec!["Cl2Fe5H2O"];
-        let result = balance(_formulas_to_substances(rg), _formulas_to_substances(pd));
+        let result =
+            balance(_formulas_to_substances(rg), _formulas_to_substances(pd));
         assert!(
             result.is_err(),
             format!("Balance solution was not Err: {:?}", result),
@@ -291,7 +311,8 @@ mod tests {
         // H2O + NO2 = HNO3
         let rg = vec!["H2O", "NO2"];
         let pd = vec!["HNO3"];
-        let result = balance(_formulas_to_substances(rg), _formulas_to_substances(pd));
+        let result =
+            balance(_formulas_to_substances(rg), _formulas_to_substances(pd));
         assert!(
             result.is_err(),
             format!("Balance solution was not Err: {:?}", result),

@@ -27,7 +27,8 @@ mod tests {
 
     #[test]
     fn ethane() {
-        let molecule: HashMap<&str, u32> = [("C", 2), ("H", 6)].iter().cloned().collect();
+        let molecule: HashMap<&str, u32> =
+            [("C", 2), ("H", 6)].iter().cloned().collect();
         let weight = molecular_weight(e(molecule)).unwrap();
         assert_eq!(weight, 30.07);
     }
@@ -42,10 +43,11 @@ mod tests {
 
     #[test]
     fn vanadium_acetylacetonate() {
-        let molecule: HashMap<&str, u32> = [("V", 1), ("C", 15), ("H", 21), ("O", 6)]
-            .iter()
-            .cloned()
-            .collect();
+        let molecule: HashMap<&str, u32> =
+            [("V", 1), ("C", 15), ("H", 21), ("O", 6)]
+                .iter()
+                .cloned()
+                .collect();
         let weight = molecular_weight(e(molecule)).unwrap();
         assert_eq!(round(weight), 348.27);
     }
