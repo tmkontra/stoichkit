@@ -16,6 +16,13 @@ fn get_element(symbol: &str) -> Result<Element, String> {
     }
 }
 
+pub fn get_element_by_id(id: u8) -> Result<Element, String> {
+    let e: Result<Option<Element>, _> =
+        panic::catch_unwind(|| Element::from_atomic_number(id.into()));
+    e.unwrap_or(None)
+        .ok_or(format!("Invalid atomic number {}", id))
+}
+
 // translated from https://leetcode.com/articles/number-of-atoms/#
 pub fn parse_formula(
     formula: &str,

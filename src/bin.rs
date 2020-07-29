@@ -1,10 +1,21 @@
 extern crate clap;
+#[macro_use]
+extern crate log;
 
 use clap::Clap;
 use itertools::Itertools;
 
 use stoichkit::model::{Reaction, Substance};
 use stoichkit::solve::balance;
+use std::fs::read_to_string;
+use stoichkit::ext::parse_chemdraw_reaction;
+
+#[derive(Clap)]
+#[clap(version = "0.2.0")]
+struct Cli {
+    #[clap(subcommand)]
+    command: Subcommand,
+}
 
 #[derive(Clap)]
 struct ReactionList {
@@ -24,28 +35,41 @@ enum Subcommand {
 struct Unbal {
     #[clap(about = "Chemical equation [...reactants] = [...products]")]
     substances: Vec<String>,
+    #[clap(short, conflicts_with = "substances")]
+    chemdraw_file: Option<String>
 }
 
 impl Unbal {
     pub fn balance(&self) -> Result<String, String> {
-        let reagent_input: Result<Vec<Substance>, _> = self
-            .substances
-            .iter()
-            .take_while(|a| a.as_str() != "=")
-            .map(|f| Substance::from_formula(f.as_str()))
-            .collect();
-        let rx_len = reagent_input.clone()?.len() + 1;
-        let product_input: Result<Vec<Substance>, _> = self
-            .substances
-            .iter()
-            .dropping(rx_len)
-            .map(|f| Substance::from_formula(f.as_str()))
-            .collect();
-        match (reagent_input.clone()?.len(), product_input.clone()?.len()) {
-            (x, y) if x >= 1 as usize && y >= 1 as usize => Ok(()),
-            _ => Err("Must provide at least 1 reactant and 1 product"),
-        }?;
-        let (reagents, products) = balance(reagent_input?, product_input?)?;
+        let (reagents, products) = match &self.chemdraw_file {
+            None => {
+                let reagent_input: Result<Vec<Substance>, _> = self
+                    .substances
+                    .iter()
+                    .take_while(|a| a.as_str() != "=")
+                    .map(|f| Substance::from_formula(f.as_str()))
+                    .collect();
+                let rx_len = reagent_input.clone()?.len() + 1;
+                let product_input: Result<Vec<Substance>, _> = self
+                    .substances
+                    .iter()
+                    .dropping(rx_len)
+                    .map(|f| Substance::from_formula(f.as_str()))
+                    .collect();
+                match (reagent_input.clone()?.len(), product_input.clone()?.len()) {
+                    (x, y) if x >= 1 as usize && y >= 1 as usize => Ok(()),
+                    _ => Err("Must provide at least 1 reactant and 1 product"),
+                }?;
+                (reagent_input?, product_input?)
+            }
+            Some(f) => {
+                let s = read_to_string(f).map_err(|_e| format!("Could not read file {:?}", f))?;
+                let result = parse_chemdraw_reaction(s.as_str())?;
+                info!("Parsed reaction {:?} = {:?}", result.reactants, result.products);
+                (result.reactants, result.products)
+            }
+        };
+        let (reagents, products) = balance(reagents, products)?;
         let balr: Vec<String> = reagents
             .iter()
             .map(|(e, c)| format!("{} {}", c, e))
@@ -57,13 +81,6 @@ impl Unbal {
         let result = format!("{} = {}", balr.join(" + "), balp.join(" + "));
         Ok(result)
     }
-}
-
-#[derive(Clap)]
-#[clap(version = "0.1.0")]
-struct Cli {
-    #[clap(subcommand)]
-    command: Subcommand,
 }
 
 impl ReactionList {
