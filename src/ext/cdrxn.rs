@@ -70,12 +70,12 @@ pub fn parse_chemdraw_reaction(
     let reactants: Vec<Substance> = rxn
         .reactants()
         .iter()
-        .map(|r| Substance::from_formula(r))
+        .map(|r| Substance::new(r))
         .collect::<Result<Vec<Substance>, String>>()?;
     let products: Vec<Substance> = rxn
         .products()
         .iter()
-        .map(|r| Substance::from_formula(r))
+        .map(|r| Substance::new(r))
         .collect::<Result<Vec<Substance>, String>>()?;
     Ok(ParsedReaction {
         reactants,

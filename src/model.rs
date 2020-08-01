@@ -3,59 +3,92 @@ use std::collections::HashMap;
 
 use ptable::Element;
 
-use crate::molecule::molecular_weight;
 use crate::parse::parse_formula;
 
 #[derive(Clone, Debug)]
-pub struct Substance {
-    pub formula: String,
-    mass: f32,
-    pub atoms: HashMap<Element, u32>,
-    molar_mass: f32,
+pub struct Reactant {
+    pub substance: Substance,
     pub molar_coefficient: u32,
 }
 
-impl Substance {
-    pub fn from_formula(formula: &str) -> Result<Substance, String> {
-        Substance::new(formula, 0., None)
-    }
-
+impl Reactant {
     pub fn new(
         formula: &str,
-        mass: f32,
-        molar_coefficient: Option<u32>,
-    ) -> Result<Substance, String> {
-        let atoms = parse_formula(formula);
-        let molecular_weight = atoms.clone().and_then(molecular_weight)?;
-        Ok(Substance {
-            formula: formula.to_string(),
-            mass,
-            atoms: atoms?,
-            molar_mass: molecular_weight,
-            molar_coefficient: molar_coefficient.unwrap_or(1),
+        molar_coefficient: u32,
+    ) -> Result<Reactant, String> {
+        Ok(Reactant {
+            substance: Substance::new(formula)?,
+            molar_coefficient,
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Reagent {
+    pub substance: Substance,
+    pub molar_coefficient: u32,
+    pub grams: f32,
+}
+
+impl Reagent {
+    pub fn new(
+        formula: &str,
+        molar_coefficient: u32,
+        grams: f32,
+    ) -> Result<Reagent, String> {
+        Ok(Reagent {
+            substance: Substance::new(formula)?,
+            molar_coefficient,
+            grams,
         })
     }
 
-    pub fn moles(self: &Self) -> f32 {
-        self.mass / self.molar_mass
+    pub fn moles(&self) -> f32 {
+        self.grams / self.substance.molecular_weight()
     }
 
-    pub fn molrxn(self: &Self) -> f32 {
+    pub fn molrxn(&self) -> f32 {
         self.moles() / self.molar_coefficient as f32
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct Substance {
+    pub formula: String,
+    pub atoms: HashMap<Element, u32>,
+}
+
+impl Substance {
+    pub fn new(formula: &str) -> Result<Substance, String> {
+        let atoms = parse_formula(formula)?;
+        Ok(Substance {
+            formula: formula.to_string(),
+            atoms,
+        })
+    }
+
+    pub fn molecular_weight(&self) -> f32 {
+        let mut weight: f32 = 0 as f32;
+        for (element, count) in &self.atoms {
+            let mass = element.get_atomic_mass();
+            trace!("Adding {:?} x {:?} for element {:?}", count, mass, element);
+            weight += mass * *count as f32
+        }
+        weight
+    }
+}
+
 pub struct Reaction {
-    pub reagents: Vec<Substance>,
-    pub product: Substance,
+    pub reagents: Vec<Reagent>,
+    pub product: Reagent,
 }
 
 impl Reaction {
-    pub fn new(reagents: Vec<Substance>, product: Substance) -> Reaction {
+    pub fn new(reagents: Vec<Reagent>, product: Reagent) -> Reaction {
         Reaction { reagents, product }
     }
 
-    pub fn limiting_reagent(self: &Self) -> &Substance {
+    pub fn limiting_reagent(self: &Self) -> &Reagent {
         self.reagents
             .iter()
             .min_by(|l, r| {
@@ -63,9 +96,9 @@ impl Reaction {
                     .partial_cmp(&r.molrxn())
                     .unwrap_or(Ordering::Equal)
             })
-            .map(|s| {
-                debug!("Limiting reagent is {}", s.formula);
-                s
+            .map(|r| {
+                debug!("Limiting reagent is {}", r.substance.formula);
+                r
             })
             .unwrap()
     }
@@ -77,12 +110,12 @@ impl Reaction {
             * (self.product.molar_coefficient as f32
                 / limiting.molar_coefficient as f32);
         debug!("Theoretical moles of product: {}", exp_moles);
-        let exp_grams = exp_moles * self.product.molar_mass;
+        let exp_grams = exp_moles * self.product.substance.molecular_weight();
         debug!("Theoretical yield of product (g): {}", exp_grams);
         exp_grams
     }
 
     pub fn percent_yield(self: &Self) -> f32 {
-        self.product.mass / self.theoretical_yield()
+        self.product.grams / self.theoretical_yield()
     }
 }

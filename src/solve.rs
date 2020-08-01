@@ -7,17 +7,17 @@ use num::integer::lcm;
 use ptable::Element;
 use rug::Rational;
 
-use crate::model::Substance;
+use crate::model::{Reactant, Substance};
 
 pub fn balance(
-    reagents: Vec<Substance>,
+    reactants: Vec<Substance>,
     products: Vec<Substance>,
-) -> Result<(Vec<(String, u64)>, Vec<(String, u64)>), String> {
-    let mut reagent_atoms: HashSet<&Element> = HashSet::new();
+) -> Result<(Vec<Reactant>, Vec<Reactant>), String> {
+    let mut reactant_atoms: HashSet<&Element> = HashSet::new();
     let mut product_atoms: HashSet<&Element> = HashSet::new();
-    for r in &reagents {
+    for r in &reactants {
         for e in r.atoms.keys() {
-            reagent_atoms.insert(e);
+            reactant_atoms.insert(e);
         }
     }
     for p in &products {
@@ -25,17 +25,17 @@ pub fn balance(
             product_atoms.insert(e);
         }
     }
-    if !&reagent_atoms.eq(&product_atoms) {
+    if !&reactant_atoms.eq(&product_atoms) {
         let missing_products: HashSet<_> =
-            reagent_atoms.difference(&product_atoms).collect();
+            reactant_atoms.difference(&product_atoms).collect();
         let missing_reagents: HashSet<_> =
-            product_atoms.difference(&reagent_atoms).collect();
+            product_atoms.difference(&reactant_atoms).collect();
         return Err(format!(
             "Equation cannot be balanced. Reagent elements that are not in products = {:?}. Product elements that are not in products = {:?}",
             missing_products, missing_reagents)
         );
     }
-    let all_atoms: Vec<&Element> = reagent_atoms
+    let all_atoms: Vec<&Element> = reactant_atoms
         .iter()
         .chain(product_atoms.iter())
         .cloned()
@@ -44,33 +44,30 @@ pub fn balance(
     let mut substances: Vec<Substance> = Vec::new();
     let mut matrix: Vec<f64> = Vec::new();
     debug!("Building matrix");
-    let mut push_atom = |input_substances: &Vec<&Substance>,
-                         element: &Element| {
-        for substance in input_substances {
-            substances.push(substance.to_owned().to_owned());
-            let coefficient =
-                substance.atoms.get(element).cloned().unwrap_or(0 as u32);
-            trace!(
-                "Pushing {:?}*{:?} from {:?}",
-                coefficient,
-                element,
-                substance
-            );
-            matrix.push(coefficient as f64);
-        }
+    let mut push_atom = |reactant: &Substance, element: &Element| {
+        substances.push(reactant.to_owned().to_owned());
+        let coefficient =
+            reactant.atoms.get(element).cloned().unwrap_or(0 as u32);
+        trace!(
+            "Pushing {:?}*{:?} from {:?}",
+            coefficient,
+            element,
+            reactant
+        );
+        matrix.push(coefficient as f64);
     };
     for element in all_atoms.iter() {
         debug!("Getting coefficients for {:?}", element);
-        push_atom(&reagents.iter().collect(), element);
-        push_atom(&products.iter().collect(), element);
+        &reactants.iter().map(|r| push_atom(r, element));
+        &products.iter().map(|r| push_atom(r, element));
     }
     debug!("Constructing matrix");
     let mx = DMatrix::from_row_slice(
         elements.len(),
-        reagents.len() + products.len(),
+        reactants.len() + products.len(),
         matrix.as_slice(),
     );
-    let c = reagents.len() + products.len() - 1;
+    let c = reactants.len() + products.len() - 1;
     let (a, b) = mx.columns_range_pair(0..c, c..);
     let x = a.svd(true, true);
     debug!("Solving equation system");
@@ -133,9 +130,20 @@ pub fn balance(
         .map(|s| s.to_owned().formula.clone())
         .zip(&mut scaled_coeffs.iter().map(|c| c.to_owned()))
         .collect();
-    let (reagents_result, products_result) = result.split_at(reagents.len());
-    if check_balance(reagents_result.to_vec(), products_result.to_vec())? {
-        Ok((reagents_result.to_vec(), products_result.to_vec()))
+    let (reactants_result, products_result) = result.split_at(reactants.len());
+    if check_balance(reactants_result.to_vec(), products_result.to_vec())? {
+        Ok((
+            reactants_result
+                .to_vec()
+                .iter()
+                .map(|(r, c)| Reactant::new(r, *c as u32))
+                .collect::<Result<Vec<Reactant>, String>>()?,
+            products_result
+                .to_vec()
+                .iter()
+                .map(|(r, c)| Reactant::new(r, *c as u32))
+                .collect::<Result<Vec<Reactant>, String>>()?,
+        ))
     } else {
         Err(format!("Equation could not be balanced!"))
     }
@@ -145,17 +153,17 @@ fn check_balance(
     reactants: Vec<(String, u64)>,
     products: Vec<(String, u64)>,
 ) -> Result<bool, String> {
-    let react_subs: Vec<Substance> = reactants
+    let react_subs: Vec<Reactant> = reactants
         .iter()
-        .map(|(f, c)| Substance::new(f.as_str(), 0.0, Some(*c as u32)))
-        .collect::<Result<Vec<Substance>, String>>()?;
-    let prod_subs: Vec<Substance> = products
+        .map(|(f, c)| Reactant::new(f.as_str(), *c as u32))
+        .collect::<Result<Vec<Reactant>, String>>()?;
+    let prod_subs: Vec<Reactant> = products
         .iter()
-        .map(|(f, c)| Substance::new(f.as_str(), 0.0, Some(*c as u32)))
-        .collect::<Result<Vec<Substance>, String>>()?;
+        .map(|(f, c)| Reactant::new(f.as_str(), *c as u32))
+        .collect::<Result<Vec<Reactant>, String>>()?;
     let react_elems: HashMap<Element, u64> = react_subs
         .iter()
-        .map(|s| (&s.atoms, s.molar_coefficient))
+        .map(|s| (&s.substance.atoms, s.molar_coefficient))
         .fold(HashMap::new(), |mut acc, (item, coeff)| {
             for (e, c) in item {
                 let counter = acc.entry(e.to_owned()).or_insert(0);
@@ -165,7 +173,7 @@ fn check_balance(
         });
     let prod_elems: HashMap<Element, u64> = prod_subs
         .iter()
-        .map(|s| (&s.atoms, s.molar_coefficient))
+        .map(|s| (&s.substance.atoms, s.molar_coefficient))
         .fold(HashMap::new(), |mut acc, (item, coeff)| {
             for (e, c) in item {
                 let counter = acc.entry(e.to_owned()).or_insert(0);
@@ -242,11 +250,11 @@ mod tests {
     use crate::model::*;
     use crate::solve::balance;
 
-    fn _formulas_to_substances(formulas: Vec<&str>) -> Vec<Substance> {
+    fn _formulas_to_substances(formulas: Vec<&str>) -> Vec<Reactant> {
         formulas
             .iter()
             .cloned()
-            .map(|f| Substance::new(f, 1.0, None).unwrap())
+            .map(|f| Reactant::new(f, 1).unwrap())
             .collect()
     }
 
