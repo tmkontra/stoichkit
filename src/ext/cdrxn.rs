@@ -1,31 +1,38 @@
-use crate::model::Substance;
+use crate::model::{Substance, UnbalancedReaction};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
-struct Reaction {
+struct ChemdrawReaction {
     #[serde(rename(deserialize = "STEPS"))]
     steps: Vec<Step>,
 }
 
-impl Reaction {
-    pub fn reactants(&self) -> Vec<String> {
-        self.steps
-            .first()
-            .map(|s| s.reactants.iter().chain(s.reagents.iter()).collect())
-            .unwrap_or(Vec::new())
-            .iter()
-            .map(|m| m.formula())
-            .collect()
+impl ChemdrawReaction {
+    pub fn reactants(&self) -> Result<Vec<Substance>, String> {
+        self.get_molecules(|s| {
+            s.reactants
+                .iter()
+                .chain(s.reagents.iter())
+                .cloned()
+                .collect()
+        })
     }
 
-    pub fn products(&self) -> Vec<String> {
+    pub fn products(&self) -> Result<Vec<Substance>, String> {
+        self.get_molecules(|s| s.products.clone())
+    }
+
+    fn get_molecules<F: Fn(&Step) -> Vec<Molecule>>(
+        &self,
+        f: F,
+    ) -> Result<Vec<Substance>, String> {
         self.steps
             .first()
-            .map(|s| &s.products)
-            .unwrap_or(&Vec::new())
+            .map(f)
+            .unwrap_or(Vec::new())
             .iter()
-            .map(|m| m.formula())
-            .collect()
+            .map(|m: &Molecule| m.to_substance())
+            .collect::<Result<Vec<Substance>, String>>()
     }
 }
 
@@ -39,7 +46,7 @@ struct Step {
     products: Vec<Molecule>,
 }
 
-#[derive(Deserialize, Debug)]
+#[derive(Clone, Deserialize, Debug)]
 struct Molecule {
     #[serde(rename(deserialize = "NAME"))]
     name: String,
@@ -50,36 +57,22 @@ struct Molecule {
 }
 
 impl Molecule {
-    pub fn formula(&self) -> String {
-        self.raw_formula.replace("<sub>", "").replace("</sub>", "")
+    pub fn to_substance(&self) -> Result<Substance, String> {
+        let formula =
+            self.raw_formula.replace("<sub>", "").replace("</sub>", "");
+        Substance::new(formula.as_str())
     }
-}
-
-#[derive(Debug)]
-pub struct ParsedReaction {
-    pub reactants: Vec<Substance>,
-    pub products: Vec<Substance>,
 }
 
 pub fn parse_chemdraw_reaction(
     document: &str,
-) -> Result<ParsedReaction, String> {
-    let parsed: Vec<Reaction> = serde_json::from_str(document)
+) -> Result<UnbalancedReaction, String> {
+    let parsed: Vec<ChemdrawReaction> = serde_json::from_str(document)
         .map_err(|e| format!("Could not parse: {:?}", e))?;
     let rxn = parsed.first().ok_or("No reactions!".to_string())?;
-    let reactants: Vec<Substance> = rxn
-        .reactants()
-        .iter()
-        .map(|r| Substance::new(r))
-        .collect::<Result<Vec<Substance>, String>>()?;
-    let products: Vec<Substance> = rxn
-        .products()
-        .iter()
-        .map(|r| Substance::new(r))
-        .collect::<Result<Vec<Substance>, String>>()?;
-    Ok(ParsedReaction {
-        reactants,
-        products,
+    Ok(UnbalancedReaction {
+        reactants: rxn.reactants()?,
+        products: rxn.products()?,
     })
 }
 

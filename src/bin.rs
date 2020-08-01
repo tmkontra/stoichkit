@@ -8,7 +8,7 @@ use clap::Clap;
 use itertools::Itertools;
 
 use stoichkit::ext::parse_chemdraw_reaction;
-use stoichkit::model::{Reaction, Reagent, Substance};
+use stoichkit::model::{Reagent, Substance, YieldReaction};
 use stoichkit::solve::balance;
 
 #[derive(Clap)]
@@ -92,7 +92,7 @@ impl Unbal {
 }
 
 impl ReactionList {
-    pub fn reaction(&self) -> Result<Reaction, String> {
+    pub fn reaction(&self) -> Result<YieldReaction, String> {
         let mut substances: Vec<Reagent> = vec![];
         for (i, pair) in
             self.substances.chunks(2).map(|c| c.to_vec()).enumerate()
@@ -141,7 +141,7 @@ impl ReactionList {
         let (product, reagents) = substances
             .split_last()
             .ok_or_else(|| "Invalid substance list!".to_string())?;
-        Ok(Reaction::new(reagents.to_vec(), product.to_owned()))
+        Ok(YieldReaction::new(reagents.to_vec(), product.to_owned()))
     }
 }
 

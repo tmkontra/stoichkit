@@ -78,14 +78,20 @@ impl Substance {
     }
 }
 
-pub struct Reaction {
+#[derive(Debug)]
+pub struct UnbalancedReaction {
+    pub reactants: Vec<Substance>,
+    pub products: Vec<Substance>,
+}
+
+pub struct YieldReaction {
     pub reagents: Vec<Reagent>,
     pub product: Reagent,
 }
 
-impl Reaction {
-    pub fn new(reagents: Vec<Reagent>, product: Reagent) -> Reaction {
-        Reaction { reagents, product }
+impl YieldReaction {
+    pub fn new(reagents: Vec<Reagent>, product: Reagent) -> YieldReaction {
+        YieldReaction { reagents, product }
     }
 
     pub fn limiting_reagent(self: &Self) -> &Reagent {
