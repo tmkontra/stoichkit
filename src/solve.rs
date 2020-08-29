@@ -242,6 +242,38 @@ mod tests {
     use crate::model::*;
     use crate::solve::balance;
 
+    macro_rules! parse_balanced_reagent {
+        ($coef:tt($subst:tt)) => {
+            (stringify!($subst), $coef)
+        };
+        ($subst:tt) => {
+            (stringify!($subst), 1)
+        };
+    }
+
+    // balance!(Al2 + Cl2 + NO3 = AlCl3)
+    macro_rules! balance {
+        ($firstSubst:tt $( + $subst:tt)* = $firstProd:tt $( + $prod:tt)* => $firstOutSubst:tt $( + $outSubst:tt)* = $firstOutProd:tt $( + $outProd:tt)*) => { 
+            // Al + Cl2 = AlCl3
+            let reagents = vec![stringify!($firstSubst) $(,stringify!($subst))*];
+            let products = vec![stringify!($firstProd) $(,stringify!($prod))*];
+            let exp_reag = vec![parse_balanced_reagent!($firstOutSubst) $(, parse_balanced_reagent!($outSubst))*];
+            let exp_prod = vec![parse_balanced_reagent!($firstOutProd) $(, parse_balanced_reagent!($outProd))*];
+            let solution = balance(
+                _formulas_to_substances(reagents),
+                _formulas_to_substances(products),
+            )
+            .unwrap();
+            assert_eq!(solution, vec![exp_reag, exp_prod])
+        };
+    }
+
+    #[test]
+    fn my_macro_test() {
+        // TODO: parse expected in macro
+        balance!(H2O = O2 + H2 => 2(H2O) = O2 + 2(H2));
+    }
+
     fn _formulas_to_substances(formulas: Vec<&str>) -> Vec<Substance> {
         formulas
             .iter()
