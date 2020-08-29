@@ -253,12 +253,12 @@ mod tests {
 
     // balance!(Al2 + Cl2 + NO3 = AlCl3)
     macro_rules! expect_balanced {
-        ($firstSubst:tt $( + $subst:tt)* = $firstProd:tt $( + $prod:tt)* => $firstOutSubst:tt $( + $outSubst:tt)* = $firstOutProd:tt $( + $outProd:tt)*) => {
+        ($reactSubst:tt $( + $reactSubstTail:tt)* = $prodSubst:tt $( + $prodSubstTail:tt)* => $expectedReactant:tt $( + $expectedReactantTail:tt)* = $expectedProduct:tt $( + $expectedProductTail:tt)*) => {
             // Al + Cl2 = AlCl3
-            let reagents = vec![stringify!($firstSubst) $(,stringify!($subst))*];
-            let products = vec![stringify!($firstProd) $(,stringify!($prod))*];
-            let exp_reag = vec![parse_balanced_reagent!($firstOutSubst) $(, parse_balanced_reagent!($outSubst))*];
-            let exp_prod = vec![parse_balanced_reagent!($firstOutProd) $(, parse_balanced_reagent!($outProd))*];
+            let reagents = vec![stringify!($reactSubst) $(,stringify!($reactSubstTail))*];
+            let products = vec![stringify!($prodSubst) $(,stringify!($prodSubstTail))*];
+            let exp_reag = vec![parse_balanced_reagent!($expectedReactant) $(, parse_balanced_reagent!($expectedReactantTail))*];
+            let exp_prod = vec![parse_balanced_reagent!($expectedProduct) $(, parse_balanced_reagent!($expectedProductTail))*];
             let solution = balance(
                 _formulas_to_substances(reagents),
                 _formulas_to_substances(products),
