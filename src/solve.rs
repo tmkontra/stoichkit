@@ -242,6 +242,34 @@ mod tests {
     use crate::model::*;
     use crate::solve::balance;
 
+    macro_rules! parse_balanced_reagent {
+        (($subst:tt, $coef: tt)) => {
+            (stringify!($subst).to_string(), $coef)
+        };
+        ($subst:tt) => {
+            (stringify!($subst).to_string(), 1)
+        };
+    }
+
+    /**
+       e.x. expect_balanced!(H2O = H2 + O2 => (H2O, 2) = (H2, 2) + O2)
+    */
+    macro_rules! expect_balanced {
+        ($reactSubst:tt $( + $reactSubstTail:tt)* = $prodSubst:tt $( + $prodSubstTail:tt)* => $expectedReactant:tt $( + $expectedReactantTail:tt)* = $expectedProduct:tt $( + $expectedProductTail:tt)*) => {
+            // Al + Cl2 = AlCl3
+            let reagents = vec![stringify!($reactSubst) $(,stringify!($reactSubstTail))*];
+            let products = vec![stringify!($prodSubst) $(,stringify!($prodSubstTail))*];
+            let exp_reag = vec![parse_balanced_reagent!($expectedReactant) $(, parse_balanced_reagent!($expectedReactantTail))*];
+            let exp_prod = vec![parse_balanced_reagent!($expectedProduct) $(, parse_balanced_reagent!($expectedProductTail))*];
+            let solution = balance(
+                _formulas_to_substances(reagents),
+                _formulas_to_substances(products),
+            )
+            .unwrap();
+            assert_eq!(solution, (exp_reag, exp_prod))
+        };
+    }
+
     fn _formulas_to_substances(formulas: Vec<&str>) -> Vec<Substance> {
         formulas
             .iter()
@@ -250,66 +278,38 @@ mod tests {
             .collect()
     }
 
-    fn _expect_solution(
-        reagents: Vec<&str>,
-        products: Vec<&str>,
-        expected: Vec<(&str, u32)>,
-    ) {
-        let solution = balance(
-            _formulas_to_substances(reagents),
-            _formulas_to_substances(products),
-        )
-        .unwrap();
-        let result: Vec<(&str, u32)> = solution
-            .0
-            .iter()
-            .chain(solution.1.iter())
-            .into_iter()
-            .map(|(s, c)| (s.as_str(), *c as u32))
-            .collect();
-        assert_eq!(result, expected)
-    }
-
     #[test]
     fn test_AlCl3() {
-        let rg = vec!["Al", "Cl2"];
-        let pd = vec!["AlCl3"];
-        let expected = vec![("Al", 2), ("Cl2", 3), ("AlCl3", 2)];
-        _expect_solution(rg, pd, expected)
+        expect_balanced!(
+            Al + Cl2 = AlCl3 =>
+                (Al, 2) + (Cl2, 3) = (AlCl3, 2)
+        );
     }
 
     #[test]
     // C6H5COOH + O2 = CO2 + H2O
     fn test_CO2() {
-        let rg = vec!["C6H5COOH", "O2"];
-        let pd = vec!["CO2", "H2O"];
-        let expected =
-            vec![("C6H5COOH", 2), ("O2", 15), ("CO2", 14), ("H2O", 6)];
-        _expect_solution(rg, pd, expected)
+        expect_balanced!(
+            C6H5COOH + O2 = CO2 + H2O =>
+                (C6H5COOH, 2) + (O2, 15) = (CO2, 14) + (H2O, 6)
+        );
     }
 
     #[test]
     // KMnO4 + HCl = KCl + MnCl2 + H2O + Cl2
     fn test_KMnO4() {
-        let rg = vec!["KMnO4", "HCl"];
-        let pd = vec!["KCl", "MnCl2", "H2O", "Cl2"];
-        let expected = vec![
-            ("KMnO4", 2),
-            ("HCl", 16),
-            ("KCl", 2),
-            ("MnCl2", 2),
-            ("H2O", 8),
-            ("Cl2", 5),
-        ];
-        _expect_solution(rg, pd, expected)
+        expect_balanced!(
+            KMnO4 + HCl = KCl + MnCl2 + H2O + Cl2 =>
+                (KMnO4, 2) + (HCl, 16) = (KCl, 2) + (MnCl2, 2) + (H2O, 8) + (Cl2, 5)
+        );
     }
 
     #[test]
     fn test_H2O() {
-        let rg = vec!["H2", "O2"];
-        let pd = vec!["H2O"];
-        let expected = vec![("H2", 2), ("O2", 1), ("H2O", 2)];
-        _expect_solution(rg, pd, expected)
+        expect_balanced!(
+            H2 + O2 = H2O =>
+                (H2, 2) + (O2, 1) = (H2O, 2)
+        );
     }
 
     #[test]
