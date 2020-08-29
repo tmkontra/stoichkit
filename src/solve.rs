@@ -275,7 +275,7 @@ mod tests {
             .map(|f| Substance::new(f, 1.0, None).unwrap())
             .collect()
     }
-    
+
     #[test]
     fn test_AlCl3() {
         expect_balanced!(
