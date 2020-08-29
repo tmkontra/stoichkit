@@ -244,10 +244,10 @@ mod tests {
 
     macro_rules! parse_balanced_reagent {
         ($coef:tt($subst:tt)) => {
-            (stringify!($subst), $coef)
+            (stringify!($subst).to_string(), $coef)
         };
         ($subst:tt) => {
-            (stringify!($subst), 1)
+            (stringify!($subst).to_string(), 1)
         };
     }
 
@@ -264,14 +264,14 @@ mod tests {
                 _formulas_to_substances(products),
             )
             .unwrap();
-            assert_eq!(solution, vec![exp_reag, exp_prod])
+            assert_eq!(solution, (exp_reag, exp_prod))
         };
     }
 
     #[test]
     fn my_macro_test() {
         // TODO: parse expected in macro
-        balance!(H2O = O2 + H2 => 2(H2O) = O2 + 2(H2));
+        balance!(H2O = O2 + H2 => H2O = O2 + H2);
     }
 
     fn _formulas_to_substances(formulas: Vec<&str>) -> Vec<Substance> {
