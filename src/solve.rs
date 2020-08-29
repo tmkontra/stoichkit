@@ -253,7 +253,7 @@ mod tests {
 
     // balance!(Al2 + Cl2 + NO3 = AlCl3)
     macro_rules! expect_balanced {
-        ($firstSubst:tt $( + $subst:tt)* = $firstProd:tt $( + $prod:tt)* => $firstOutSubst:tt $( + $outSubst:tt)* = $firstOutProd:tt $( + $outProd:tt)*) => { 
+        ($firstSubst:tt $( + $subst:tt)* = $firstProd:tt $( + $prod:tt)* => $firstOutSubst:tt $( + $outSubst:tt)* = $firstOutProd:tt $( + $outProd:tt)*) => {
             // Al + Cl2 = AlCl3
             let reagents = vec![stringify!($firstSubst) $(,stringify!($subst))*];
             let products = vec![stringify!($firstProd) $(,stringify!($prod))*];
@@ -275,20 +275,11 @@ mod tests {
             .map(|f| Substance::new(f, 1.0, None).unwrap())
             .collect()
     }
-
-    #[test]
-    fn my_macro_test() {
-        // TODO: parse expected in macro
-        expect_balanced!(
-            H2O = O2 + H2 => 
-                (H2O, 2) = O2 + (H2, 2)
-        );
-    }
-
+    
     #[test]
     fn test_AlCl3() {
         expect_balanced!(
-            Al + Cl2 = AlCl3 => 
+            Al + Cl2 = AlCl3 =>
                 (Al, 2) + (Cl2, 3) = (AlCl3, 2)
         );
     }
