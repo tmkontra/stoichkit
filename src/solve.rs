@@ -251,7 +251,9 @@ mod tests {
         };
     }
 
-    // balance!(Al2 + Cl2 + NO3 = AlCl3)
+    /**
+       e.x. expect_balanced!(H2O = H2 + O2 => (H2O, 2) = (H2, 2) + O2)
+    */
     macro_rules! expect_balanced {
         ($reactSubst:tt $( + $reactSubstTail:tt)* = $prodSubst:tt $( + $prodSubstTail:tt)* => $expectedReactant:tt $( + $expectedReactantTail:tt)* = $expectedProduct:tt $( + $expectedProductTail:tt)*) => {
             // Al + Cl2 = AlCl3
