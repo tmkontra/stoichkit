@@ -1,5 +1,6 @@
-use std::cmp::Ordering;
+use std::cmp::{Eq, Ordering};
 use std::collections::HashMap;
+use std::{hash::Hash, iter::FromIterator};
 
 use periodic_table_on_an_enum::Element as PElement;
 
@@ -107,14 +108,85 @@ impl Element {
     }
 }
 
-pub struct Reaction {
+#[derive(Debug, Clone)]
+pub struct BalancedReaction {
+    pub reactants: Vec<Reactant>,
+    pub products: Vec<Reactant>,
+}
+
+struct ReactantMap(HashMap<String, u32>);
+
+impl FromIterator<Reactant> for ReactantMap {
+    fn from_iter<R>(reactants: R) -> Self
+    where
+        R: IntoIterator<Item = Reactant>,
+    {
+        let mut m = HashMap::new();
+        for r in reactants {
+            m.entry(r.compound.formula).or_insert(r.molar_coefficient);
+        }
+        Self(m)
+    }
+}
+
+impl PartialEq for BalancedReaction {
+    fn eq(&self, other: &Self) -> bool {
+        let ReactantMap(r) = self.reactants.clone().into_iter().collect();
+        let ReactantMap(p) = self.products.clone().into_iter().collect();
+        let ReactantMap(or) = other.reactants.clone().into_iter().collect();
+        let ReactantMap(op) = other.products.clone().into_iter().collect();
+        r == or && p == op
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        !self.eq(other)
+    }
+}
+
+impl BalancedReaction {
+    pub fn new(reactants: Vec<Reactant>, products: Vec<Reactant>) -> Self {
+        BalancedReaction {
+            reactants,
+            products,
+        }
+    }
+
+    fn reactants_display_string(&self) -> String {
+        let balr: Vec<String> = self
+            .reactants
+            .iter()
+            .map(|r| format!("{} {}", r.molar_coefficient, r.compound.formula))
+            .collect();
+        balr.join(" + ")
+    }
+
+    fn products_display_string(&self) -> String {
+        let balp: Vec<String> = self
+            .products
+            .iter()
+            .map(|r| format!("{} {}", r.molar_coefficient, r.compound.formula))
+            .collect();
+        balp.join(" + ")
+    }
+
+    pub fn display_string(&self) -> String {
+        format!(
+            "{} = {}",
+            self.reactants_display_string(),
+            self.products_display_string()
+        )
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct YieldReaction {
     pub reagents: Vec<Substance>,
     pub product: Substance,
 }
 
-impl Reaction {
-    pub fn new(reagents: Vec<Substance>, product: Substance) -> Reaction {
-        Reaction { reagents, product }
+impl YieldReaction {
+    pub fn new(reagents: Vec<Substance>, product: Substance) -> YieldReaction {
+        YieldReaction { reagents, product }
     }
 
     pub fn limiting_reagent(self: &Self) -> &Substance {

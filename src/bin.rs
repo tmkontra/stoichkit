@@ -7,7 +7,7 @@ use itertools::Itertools;
 
 use std::fs::read_to_string;
 use stoichkit::ext::parse_chemdraw_reaction;
-use stoichkit::model::{Compound, Reaction, Substance};
+use stoichkit::model::{Compound, Substance, YieldReaction};
 use stoichkit::solve::balance;
 
 #[derive(Clap)]
@@ -76,22 +76,13 @@ impl Unbal {
                 (result.reactants, result.products)
             }
         };
-        let (reagents, products) = balance(reagents, products)?;
-        let balr: Vec<String> = reagents
-            .iter()
-            .map(|(e, c)| format!("{} {}", c, e))
-            .collect();
-        let balp: Vec<String> = products
-            .iter()
-            .map(|(e, c)| format!("{} {}", c, e))
-            .collect();
-        let result = format!("{} = {}", balr.join(" + "), balp.join(" + "));
-        Ok(result)
+        let balanced = balance(reagents, products)?;
+        Ok(balanced.display_string())
     }
 }
 
 impl ReactionList {
-    pub fn reaction(&self) -> Result<Reaction, String> {
+    pub fn reaction(&self) -> Result<YieldReaction, String> {
         let mut substances: Vec<Substance> = vec![];
         for (i, pair) in
             self.substances.chunks(2).map(|c| c.to_vec()).enumerate()
@@ -138,7 +129,7 @@ impl ReactionList {
         let (product, reagents) = substances
             .split_last()
             .ok_or_else(|| "Invalid substance list!".to_string())?;
-        Ok(Reaction::new(reagents.to_vec(), product.to_owned()))
+        Ok(YieldReaction::new(reagents.to_vec(), product.to_owned()))
     }
 }
 
