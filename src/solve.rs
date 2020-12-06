@@ -6,12 +6,11 @@ use nalgebra::DMatrix;
 use num::integer::lcm;
 use rug::Rational;
 
-use crate::model::{Substance, Element};
-
+use crate::model::{Compound, Element, Reactant};
 
 pub fn balance(
-    reagents: Vec<Substance>,
-    products: Vec<Substance>,
+    reagents: Vec<Compound>,
+    products: Vec<Compound>,
 ) -> Result<(Vec<(String, u64)>, Vec<(String, u64)>), String> {
     let mut reagent_atoms: HashSet<&Element> = HashSet::new();
     let mut product_atoms: HashSet<&Element> = HashSet::new();
@@ -41,20 +40,20 @@ pub fn balance(
         .cloned()
         .collect();
     let elements: Vec<&Element> = all_atoms.iter().cloned().collect();
-    let mut substances: Vec<Substance> = Vec::new();
+    let mut all_compounds: Vec<Compound> = Vec::new();
     let mut matrix: Vec<f64> = Vec::new();
     debug!("Building matrix");
-    let mut push_atom = |input_substances: &Vec<&Substance>,
+    let mut push_atom = |input_compounds: &Vec<&Compound>,
                          element: &Element| {
-        for substance in input_substances {
-            substances.push(substance.to_owned().to_owned());
+        for compound in input_compounds {
+            all_compounds.push(compound.to_owned().to_owned());
             let coefficient =
-                substance.atoms.get(element).cloned().unwrap_or(0 as u32);
+                compound.atoms.get(element).cloned().unwrap_or(0 as u32);
             trace!(
                 "Pushing {:?}*{:?} from {:?}",
                 coefficient,
                 element,
-                substance
+                compound
             );
             matrix.push(coefficient as f64);
         }
@@ -128,7 +127,7 @@ pub fn balance(
         .collect::<Result<Vec<u64>, String>>()?;
     scaled_coeffs.push(scale);
     trace!("Got scaled coefficients: {:?}", scaled_coeffs);
-    let result: Vec<(String, u64)> = substances
+    let result: Vec<(String, u64)> = all_compounds
         .iter()
         .map(|s| s.to_owned().formula.clone())
         .zip(&mut scaled_coeffs.iter().map(|c| c.to_owned()))
@@ -145,17 +144,17 @@ fn check_balance(
     reactants: Vec<(String, u64)>,
     products: Vec<(String, u64)>,
 ) -> Result<bool, String> {
-    let react_subs: Vec<Substance> = reactants
+    let react_subs: Vec<Reactant> = reactants
         .iter()
-        .map(|(f, c)| Substance::new(f.as_str(), 0.0, Some(*c as u32)))
-        .collect::<Result<Vec<Substance>, String>>()?;
-    let prod_subs: Vec<Substance> = products
+        .map(|(f, c)| Reactant::from_formula(f.as_str(), *c as u32))
+        .collect::<Result<Vec<Reactant>, String>>()?;
+    let prod_subs: Vec<Reactant> = products
         .iter()
-        .map(|(f, c)| Substance::new(f.as_str(), 0.0, Some(*c as u32)))
-        .collect::<Result<Vec<Substance>, String>>()?;
+        .map(|(f, c)| Reactant::from_formula(f.as_str(), *c as u32))
+        .collect::<Result<Vec<Reactant>, String>>()?;
     let react_elems: HashMap<Element, u64> = react_subs
         .iter()
-        .map(|s| (&s.atoms, s.molar_coefficient))
+        .map(|s| (&s.compound.atoms, s.molar_coefficient))
         .fold(HashMap::new(), |mut acc, (item, coeff)| {
             for (e, c) in item {
                 let counter = acc.entry(e.to_owned()).or_insert(0);
@@ -165,7 +164,7 @@ fn check_balance(
         });
     let prod_elems: HashMap<Element, u64> = prod_subs
         .iter()
-        .map(|s| (&s.atoms, s.molar_coefficient))
+        .map(|s| (&s.compound.atoms, s.molar_coefficient))
         .fold(HashMap::new(), |mut acc, (item, coeff)| {
             for (e, c) in item {
                 let counter = acc.entry(e.to_owned()).or_insert(0);
@@ -274,7 +273,7 @@ mod tests {
         formulas
             .iter()
             .cloned()
-            .map(|f| Substance::new(f, 1.0, None).unwrap())
+            .map(|f| Substance::from_formula(f, 1.0, None).unwrap())
             .collect()
     }
 

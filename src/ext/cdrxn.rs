@@ -1,4 +1,4 @@
-use crate::model::Substance;
+use crate::model::Compound;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -57,8 +57,8 @@ impl Molecule {
 
 #[derive(Debug)]
 pub struct ParsedReaction {
-    pub reactants: Vec<Substance>,
-    pub products: Vec<Substance>,
+    pub reactants: Vec<Compound>,
+    pub products: Vec<Compound>,
 }
 
 pub fn parse_chemdraw_reaction(
@@ -67,16 +67,16 @@ pub fn parse_chemdraw_reaction(
     let parsed: Vec<Reaction> = serde_json::from_str(document)
         .map_err(|e| format!("Could not parse: {:?}", e))?;
     let rxn = parsed.first().ok_or("No reactions!".to_string())?;
-    let reactants: Vec<Substance> = rxn
+    let reactants: Vec<Compound> = rxn
         .reactants()
         .iter()
-        .map(|r| Substance::from_formula(r))
-        .collect::<Result<Vec<Substance>, String>>()?;
-    let products: Vec<Substance> = rxn
+        .map(|r| Compound::from_formula(r))
+        .collect::<Result<Vec<Compound>, String>>()?;
+    let products: Vec<Compound> = rxn
         .products()
         .iter()
-        .map(|r| Substance::from_formula(r))
-        .collect::<Result<Vec<Substance>, String>>()?;
+        .map(|r| Compound::from_formula(r))
+        .collect::<Result<Vec<Compound>, String>>()?;
     Ok(ParsedReaction {
         reactants,
         products,

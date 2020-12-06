@@ -7,7 +7,7 @@ use itertools::Itertools;
 
 use std::fs::read_to_string;
 use stoichkit::ext::parse_chemdraw_reaction;
-use stoichkit::model::{Reaction, Substance};
+use stoichkit::model::{Compound, Reaction, Substance};
 use stoichkit::solve::balance;
 
 #[derive(Clap)]
@@ -43,18 +43,18 @@ impl Unbal {
     pub fn balance(&self) -> Result<String, String> {
         let (reagents, products) = match &self.chemdraw_file {
             None => {
-                let reagent_input: Result<Vec<Substance>, _> = self
+                let reagent_input: Result<Vec<Compound>, _> = self
                     .substances
                     .iter()
                     .take_while(|a| a.as_str() != "=")
-                    .map(|f| Substance::from_formula(f.as_str()))
+                    .map(|f| Compound::from_formula(f.as_str()))
                     .collect();
                 let rx_len = reagent_input.clone()?.len() + 1;
-                let product_input: Result<Vec<Substance>, _> = self
+                let product_input: Result<Vec<Compound>, _> = self
                     .substances
                     .iter()
                     .dropping(rx_len)
-                    .map(|f| Substance::from_formula(f.as_str()))
+                    .map(|f| Compound::from_formula(f.as_str()))
                     .collect();
                 match (
                     reagent_input.clone()?.len(),
@@ -103,18 +103,16 @@ impl ReactionList {
                 ));
             }
             let stoich: Vec<&str> = pair[0].as_str().split('*').collect();
-            let (coeff, formula): (Option<u32>, &str) = match stoich.len() {
-                1 => (None, pair[0].as_str()),
+            let (coeff, formula): (u32, &str) = match stoich.len() {
+                1 => (1, pair[0].as_str()),
                 2 => (
-                    Some(stoich.first().unwrap().parse::<u32>().map_err(
-                        |_| {
-                            format!(
-                                "Invalid coeffcieint {} for substance {}",
-                                stoich.first().unwrap(),
-                                pair[0]
-                            )
-                        },
-                    )?),
+                    stoich.first().unwrap().parse::<u32>().map_err(|_| {
+                        format!(
+                            "Invalid coeffcieint {} for substance {}",
+                            stoich.first().unwrap(),
+                            pair[0]
+                        )
+                    })?,
                     stoich.iter().cloned().last().unwrap(),
                 ),
                 _ => {
@@ -125,7 +123,7 @@ impl ReactionList {
                     ))
                 }
             };
-            let substance = Substance::new(
+            let substance = Substance::from_formula(
                 formula,
                 pair[1].clone().parse::<f32>().map_err(|_| {
                     format!(

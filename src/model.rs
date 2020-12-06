@@ -7,12 +7,81 @@ use crate::molecule::molecular_weight;
 use crate::parse::parse_formula;
 
 #[derive(Clone, Debug)]
-pub struct Substance {
+pub struct Compound {
     pub formula: String,
-    mass: f32,
     pub atoms: HashMap<Element, u32>,
     molar_mass: f32,
+}
+
+impl Compound {
+    pub fn from_formula(formula: &str) -> Result<Compound, String> {
+        Compound::new(formula)
+    }
+
+    pub fn new(formula: &str) -> Result<Compound, String> {
+        let atoms = parse_formula(formula);
+        let molecular_weight = atoms.clone().and_then(molecular_weight)?;
+        Ok(Compound {
+            formula: formula.to_string(),
+            atoms: atoms?,
+            molar_mass: molecular_weight,
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Reactant {
+    pub compound: Compound,
     pub molar_coefficient: u32,
+}
+
+impl Reactant {
+    pub fn of_compound(compound: Compound, coeff: u32) -> Self {
+        Reactant {
+            compound,
+            molar_coefficient: coeff,
+        }
+    }
+
+    pub fn from_formula(formula: &str, coeff: u32) -> Result<Self, String> {
+        let cmp = Compound::from_formula(formula);
+        Ok(Reactant {
+            compound: cmp?,
+            molar_coefficient: coeff,
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Substance {
+    pub reactant: Reactant,
+    pub mass: f32,
+}
+
+impl Substance {
+    pub fn of_reactant(reactant: Reactant, mass: f32) -> Self {
+        Substance { reactant, mass }
+    }
+
+    pub fn from_formula(
+        formula: &str,
+        mass: f32,
+        molar_coefficient: u32,
+    ) -> Result<Substance, String> {
+        let rct = Reactant::from_formula(formula, molar_coefficient);
+        Ok(Substance {
+            reactant: rct?,
+            mass,
+        })
+    }
+
+    pub fn moles(self: &Self) -> f32 {
+        self.mass / self.reactant.compound.molar_mass
+    }
+
+    pub fn molrxn(self: &Self) -> f32 {
+        self.moles() / self.reactant.molar_coefficient as f32
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -38,37 +107,6 @@ impl Element {
     }
 }
 
-
-impl Substance {
-    pub fn from_formula(formula: &str) -> Result<Substance, String> {
-        Substance::new(formula, 0., None)
-    }
-
-    pub fn new(
-        formula: &str,
-        mass: f32,
-        molar_coefficient: Option<u32>,
-    ) -> Result<Substance, String> {
-        let atoms = parse_formula(formula);
-        let molecular_weight = atoms.clone().and_then(molecular_weight)?;
-        Ok(Substance {
-            formula: formula.to_string(),
-            mass,
-            atoms: atoms?,
-            molar_mass: molecular_weight,
-            molar_coefficient: molar_coefficient.unwrap_or(1),
-        })
-    }
-
-    pub fn moles(self: &Self) -> f32 {
-        self.mass / self.molar_mass
-    }
-
-    pub fn molrxn(self: &Self) -> f32 {
-        self.moles() / self.molar_coefficient as f32
-    }
-}
-
 pub struct Reaction {
     pub reagents: Vec<Substance>,
     pub product: Substance,
@@ -88,7 +126,7 @@ impl Reaction {
                     .unwrap_or(Ordering::Equal)
             })
             .map(|s| {
-                debug!("Limiting reagent is {}", s.formula);
+                debug!("Limiting reagent is {}", s.reactant.compound.formula);
                 s
             })
             .unwrap()
@@ -98,10 +136,10 @@ impl Reaction {
         let limiting = self.limiting_reagent();
         trace!("{} moles of limiting reagent", limiting.moles());
         let exp_moles = limiting.moles()
-            * (self.product.molar_coefficient as f32
-                / limiting.molar_coefficient as f32);
+            * (self.product.reactant.molar_coefficient as f32
+                / limiting.reactant.molar_coefficient as f32);
         debug!("Theoretical moles of product: {}", exp_moles);
-        let exp_grams = exp_moles * self.product.molar_mass;
+        let exp_grams = exp_moles * self.product.reactant.compound.molar_mass;
         debug!("Theoretical yield of product (g): {}", exp_grams);
         exp_grams
     }
