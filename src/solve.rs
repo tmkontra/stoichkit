@@ -6,13 +6,12 @@ use nalgebra::DMatrix;
 use num::integer::lcm;
 use rug::Rational;
 
-use crate::model::{Substance, Element};
-
+use crate::model::{BalancedReaction, Compound, Element, Reactant};
 
 pub fn balance(
-    reagents: Vec<Substance>,
-    products: Vec<Substance>,
-) -> Result<(Vec<(String, u64)>, Vec<(String, u64)>), String> {
+    reagents: Vec<Compound>,
+    products: Vec<Compound>,
+) -> Result<BalancedReaction, String> {
     let mut reagent_atoms: HashSet<&Element> = HashSet::new();
     let mut product_atoms: HashSet<&Element> = HashSet::new();
     for r in &reagents {
@@ -41,20 +40,20 @@ pub fn balance(
         .cloned()
         .collect();
     let elements: Vec<&Element> = all_atoms.iter().cloned().collect();
-    let mut substances: Vec<Substance> = Vec::new();
+    let mut all_compounds: Vec<Compound> = Vec::new();
     let mut matrix: Vec<f64> = Vec::new();
     debug!("Building matrix");
-    let mut push_atom = |input_substances: &Vec<&Substance>,
+    let mut push_atom = |input_compounds: &Vec<&Compound>,
                          element: &Element| {
-        for substance in input_substances {
-            substances.push(substance.to_owned().to_owned());
+        for compound in input_compounds {
+            all_compounds.push(compound.to_owned().to_owned());
             let coefficient =
-                substance.atoms.get(element).cloned().unwrap_or(0 as u32);
+                compound.atoms.get(element).cloned().unwrap_or(0 as u32);
             trace!(
                 "Pushing {:?}*{:?} from {:?}",
                 coefficient,
                 element,
-                substance
+                compound
             );
             matrix.push(coefficient as f64);
         }
@@ -128,34 +127,31 @@ pub fn balance(
         .collect::<Result<Vec<u64>, String>>()?;
     scaled_coeffs.push(scale);
     trace!("Got scaled coefficients: {:?}", scaled_coeffs);
-    let result: Vec<(String, u64)> = substances
+    let result: Vec<Reactant> = all_compounds
         .iter()
-        .map(|s| s.to_owned().formula.clone())
+        .map(|compound| compound.to_owned())
         .zip(&mut scaled_coeffs.iter().map(|c| c.to_owned()))
+        .map(|(c, coeff)| Reactant::of_compound(c, coeff as u32))
         .collect();
     let (reagents_result, products_result) = result.split_at(reagents.len());
-    if check_balance(reagents_result.to_vec(), products_result.to_vec())? {
-        Ok((reagents_result.to_vec(), products_result.to_vec()))
+    if check_balance(reagents_result, products_result)? {
+        let reaction = BalancedReaction::new(
+            reagents_result.to_vec(),
+            products_result.to_vec(),
+        );
+        Ok(reaction)
     } else {
         Err(format!("Equation could not be balanced!"))
     }
 }
 
 fn check_balance(
-    reactants: Vec<(String, u64)>,
-    products: Vec<(String, u64)>,
+    reactants: &[Reactant],
+    products: &[Reactant],
 ) -> Result<bool, String> {
-    let react_subs: Vec<Substance> = reactants
+    let react_elems: HashMap<Element, u64> = reactants
         .iter()
-        .map(|(f, c)| Substance::new(f.as_str(), 0.0, Some(*c as u32)))
-        .collect::<Result<Vec<Substance>, String>>()?;
-    let prod_subs: Vec<Substance> = products
-        .iter()
-        .map(|(f, c)| Substance::new(f.as_str(), 0.0, Some(*c as u32)))
-        .collect::<Result<Vec<Substance>, String>>()?;
-    let react_elems: HashMap<Element, u64> = react_subs
-        .iter()
-        .map(|s| (&s.atoms, s.molar_coefficient))
+        .map(|s| (&s.compound.atoms, s.molar_coefficient))
         .fold(HashMap::new(), |mut acc, (item, coeff)| {
             for (e, c) in item {
                 let counter = acc.entry(e.to_owned()).or_insert(0);
@@ -163,9 +159,9 @@ fn check_balance(
             }
             acc
         });
-    let prod_elems: HashMap<Element, u64> = prod_subs
+    let prod_elems: HashMap<Element, u64> = products
         .iter()
-        .map(|s| (&s.atoms, s.molar_coefficient))
+        .map(|s| (&s.compound.atoms, s.molar_coefficient))
         .fold(HashMap::new(), |mut acc, (item, coeff)| {
             for (e, c) in item {
                 let counter = acc.entry(e.to_owned()).or_insert(0);
@@ -244,10 +240,10 @@ mod tests {
 
     macro_rules! parse_balanced_reagent {
         (($subst:tt, $coef: tt)) => {
-            (stringify!($subst).to_string(), $coef)
+            Reactant::from_formula(stringify!($subst), $coef).unwrap()
         };
         ($subst:tt) => {
-            (stringify!($subst).to_string(), 1)
+            Reactant::from_formula(stringify!($subst), 1).unwrap()
         };
     }
 
@@ -262,19 +258,19 @@ mod tests {
             let exp_reag = vec![parse_balanced_reagent!($expectedReactant) $(, parse_balanced_reagent!($expectedReactantTail))*];
             let exp_prod = vec![parse_balanced_reagent!($expectedProduct) $(, parse_balanced_reagent!($expectedProductTail))*];
             let solution = balance(
-                _formulas_to_substances(reagents),
-                _formulas_to_substances(products),
+                _formulas_to_compounds(reagents),
+                _formulas_to_compounds(products),
             )
             .unwrap();
-            assert_eq!(solution, (exp_reag, exp_prod))
+            assert_eq!(solution, BalancedReaction::new(exp_reag, exp_prod))
         };
     }
 
-    fn _formulas_to_substances(formulas: Vec<&str>) -> Vec<Substance> {
+    fn _formulas_to_compounds(formulas: Vec<&str>) -> Vec<Compound> {
         formulas
             .iter()
             .cloned()
-            .map(|f| Substance::new(f, 1.0, None).unwrap())
+            .map(|f| Compound::from_formula(f).unwrap())
             .collect()
     }
 
@@ -318,7 +314,7 @@ mod tests {
         let rg = vec!["Fe3", "Cl5"];
         let pd = vec!["Cl2Fe5H2O"];
         let result =
-            balance(_formulas_to_substances(rg), _formulas_to_substances(pd));
+            balance(_formulas_to_compounds(rg), _formulas_to_compounds(pd));
         assert!(
             result.is_err(),
             format!("Balance solution was not Err: {:?}", result),
@@ -331,7 +327,7 @@ mod tests {
         let rg = vec!["H2O", "NO2"];
         let pd = vec!["HNO3"];
         let result =
-            balance(_formulas_to_substances(rg), _formulas_to_substances(pd));
+            balance(_formulas_to_compounds(rg), _formulas_to_compounds(pd));
         assert!(
             result.is_err(),
             format!("Balance solution was not Err: {:?}", result),
