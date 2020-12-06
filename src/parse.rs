@@ -2,7 +2,7 @@ use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 use std::panic;
 
-use ptable::Element;
+use crate::model::Element;
 
 fn get_element(symbol: &str) -> Result<Element, String> {
     match symbol.chars().all(|c| c.is_ascii_alphabetic()) {
@@ -151,8 +151,7 @@ mod tests {
     use std::collections::hash_map::RandomState;
     use std::collections::HashMap;
 
-    use ptable::Element;
-
+    use crate::model::Element;
     use crate::parse::parse_formula;
     use crate::test_utils::e;
 

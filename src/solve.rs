@@ -4,10 +4,10 @@ use std::collections::{HashMap, HashSet};
 use itertools::Itertools;
 use nalgebra::DMatrix;
 use num::integer::lcm;
-use ptable::Element;
 use rug::Rational;
 
-use crate::model::Substance;
+use crate::model::{Substance, Element};
+
 
 pub fn balance(
     reagents: Vec<Substance>,
