@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use ptable::Element;
+use crate::model::Element;
 
 pub fn molecular_weight(atoms: HashMap<Element, u32>) -> Result<f32, String> {
     let mut weight: f32 = 0 as f32;

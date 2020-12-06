@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use ptable::Element;
+use crate::model::Element;
 
 #[allow(dead_code)]
 pub fn e(expected: HashMap<&str, u32>) -> HashMap<Element, u32> {

@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
-use ptable::Element;
+use periodic_table_on_an_enum::Element as PElement;
 
 use crate::molecule::molecular_weight;
 use crate::parse::parse_formula;
@@ -14,6 +14,30 @@ pub struct Substance {
     molar_mass: f32,
     pub molar_coefficient: u32,
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Element {
+    element: PElement,
+}
+
+impl Element {
+    pub fn from_symbol(sym: &str) -> Option<Element> {
+        PElement::from_symbol(sym).map(Element::from_pt_element)
+    }
+
+    pub fn from_atomic_number(z: usize) -> Option<Element> {
+        PElement::from_atomic_number(z).map(Element::from_pt_element)
+    }
+
+    fn from_pt_element(element: PElement) -> Element {
+        Element { element }
+    }
+
+    pub fn get_atomic_mass(&self) -> f32 {
+        self.element.get_atomic_mass()
+    }
+}
+
 
 impl Substance {
     pub fn from_formula(formula: &str) -> Result<Substance, String> {
