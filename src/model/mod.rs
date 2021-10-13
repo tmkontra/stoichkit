@@ -6,8 +6,6 @@ pub use balanced_reaction::BalancedReaction;
 pub use yield_reaction::YieldReaction;
 pub use reaction::Reaction;
 
-use crate::solve;
-
 mod element;
 mod compound;
 mod reactant;

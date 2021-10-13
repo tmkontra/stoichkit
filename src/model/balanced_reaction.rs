@@ -56,6 +56,14 @@ impl BalancedReaction {
             self.products_display_string()
         )
     }
+
+    #[allow(dead_code)]
+    pub(crate) fn all_coefficients(&self) -> Vec<usize> {
+        self.reactants.iter()
+            .chain(self.products.iter())
+            .map(|r| r.molar_coefficient)
+            .collect()
+    }
 }
 
 

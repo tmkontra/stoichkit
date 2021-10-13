@@ -30,7 +30,7 @@ pub fn build_matrix(all_elements: &Vec<&Element>, all_compounds: Vec<&Compound>,
 
 pub fn solve_system(mx: DMatrix<f64>, ncols: usize) -> Result<Vec<f32>, String> {
     let (a, b) = mx.columns_range_pair(0..ncols, ncols..);
-    let solution = if (!a.is_square()) {
+    let solution = if !a.is_square() {
         debug!("Solving non-square matrix by SVD");
         let x = a.svd(true, true);
         debug!("Solving equation system");
@@ -193,6 +193,20 @@ mod tests {
         };
     }
 
+    macro_rules! expect_coefficients {
+        ($reactSubst:tt $( + $reactSubstTail:tt)* = $prodSubst:tt $( + $prodSubstTail:tt)* => $expectedReactant:literal $( + $expectedReactantTail:literal)*) => {
+            // Al + Cl2 = AlCl3
+            let reagents = vec![stringify!($reactSubst) $(,stringify!($reactSubstTail))*];
+            let products = vec![stringify!($prodSubst) $(,stringify!($prodSubstTail))*];
+            let exp_reag = vec![($expectedReactant) $(, ($expectedReactantTail))*];
+            let r = reagents.into_iter().map(|r| Compound::from_formula(r).unwrap()).collect();
+            let p = products.into_iter().map(|r| Compound::from_formula(r).unwrap()).collect();
+            let reaction = Reaction::new(r, p).unwrap();
+            let solution = reaction.balance().unwrap();
+            assert_eq!(solution.all_coefficients(), exp_reag);
+        };
+    }
+
     fn _formulas_to_compounds(formulas: Vec<&str>) -> Vec<Compound> {
         formulas
             .iter()
@@ -254,6 +268,20 @@ mod tests {
             result.is_err(),
             format!("Balance solution was not Err: {:?}", result),
         )
+    }
+
+    #[test]
+    fn test_batch() {
+        expect_coefficients!(CO2 + H2O = C6H12O6 + O2 => 6 + 6 + 1 + 6);
+        expect_coefficients!(SiCl4 + H2O = H4SiO4 + HCl => 1 + 4 + 1 + 4);
+        expect_coefficients!(Al + HCl = AlCl3 + H2 => 2 + 6 + 2 + 3);
+        expect_coefficients!(Na2CO3 + HCl = NaCl + H2O + CO2 => 1 + 2 + 2 + 1 + 1);
+        expect_coefficients!(C7H6O2 + O2 = CO2 + H2O => 2 + 15 + 14 + 6);
+        expect_coefficients!(Fe2S3O12 + KOH = K2SO4 + FeO3H3 => 1 + 6 + 3 + 2);
+        expect_coefficients!(Ca3P2O8 + SiO2 = P4O10 + CaSiO3 => 2 + 6 + 1 + 6);
+        expect_coefficients!(KClO3 = KClO4 + KCl => 4 + 3 + 1);
+        expect_coefficients!(Al2S3O12 + CaO2H2 = AlO3H3 + CaSO4 => 1 + 3 + 2 + 3);
+        expect_coefficients!(H2SO4 + HI = H2S + I2 + H2O => 1 + 8 + 1 + 4 + 4);
     }
 
 }
