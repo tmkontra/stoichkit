@@ -1,15 +1,15 @@
+pub use balanced_reaction::BalancedReaction;
 pub use compound::Compound;
 pub use element::Element;
 pub use reactant::Reactant;
-pub use sample::Sample;
-pub use balanced_reaction::BalancedReaction;
-pub use yield_reaction::YieldReaction;
 pub use reaction::Reaction;
+pub use sample::Sample;
+pub use yield_reaction::YieldReaction;
 
-mod element;
+mod balanced_reaction;
 mod compound;
+mod element;
 mod reactant;
+mod reaction;
 mod sample;
 mod yield_reaction;
-mod balanced_reaction;
-mod reaction;

@@ -8,7 +8,11 @@ use rug::Rational;
 use crate::model::Compound;
 use crate::model::Element;
 
-pub fn build_matrix(all_elements: &Vec<&Element>, all_compounds: Vec<&Compound>, ncols: usize) -> DMatrix<f64> {
+pub fn build_matrix(
+    all_elements: &Vec<&Element>,
+    all_compounds: Vec<&Compound>,
+    ncols: usize,
+) -> DMatrix<f64> {
     let mut matrix: Vec<f64> = Vec::new();
     debug!("Building matrix");
     for element in all_elements {
@@ -16,19 +20,23 @@ pub fn build_matrix(all_elements: &Vec<&Element>, all_compounds: Vec<&Compound>,
         for compound in all_compounds.clone() {
             let coefficient =
                 compound.atoms.get(element).cloned().unwrap_or(0 as usize);
-            trace!("Pushing {:?}*{:?} from {:?}", coefficient, element, compound);
+            trace!(
+                "Pushing {:?}*{:?} from {:?}",
+                coefficient,
+                element,
+                compound
+            );
             matrix.push(coefficient as f64);
         }
     }
     debug!("Constructing matrix");
-    DMatrix::from_row_slice(
-        all_elements.len(),
-        ncols,
-        matrix.as_slice(),
-    )
+    DMatrix::from_row_slice(all_elements.len(), ncols, matrix.as_slice())
 }
 
-pub fn solve_system(mx: DMatrix<f64>, ncols: usize) -> Result<Vec<f32>, String> {
+pub fn solve_system(
+    mx: DMatrix<f64>,
+    ncols: usize,
+) -> Result<Vec<f32>, String> {
     let (a, b) = mx.columns_range_pair(0..ncols, ncols..);
     let solution = if !a.is_square() {
         debug!("Solving non-square matrix by SVD");
@@ -39,12 +47,15 @@ pub fn solve_system(mx: DMatrix<f64>, ncols: usize) -> Result<Vec<f32>, String> 
         debug!("Solving square matrix by LU");
         let x = a.lu();
         debug!("Solving equation system");
-        x.solve(&b).expect(format!("Failed to solve matrix! {:?}", x).as_str())
+        x.solve(&b)
+            .expect(format!("Failed to solve matrix! {:?}", x).as_str())
     };
     Ok(solution.column(0).iter().map(|c| *c as f32).collect())
 }
 
-pub fn normalize_coefficients(coefficients: Vec<f32>) -> Result<Vec<usize>, String> {
+pub fn normalize_coefficients(
+    coefficients: Vec<f32>,
+) -> Result<Vec<usize>, String> {
     let rational_coefficients: Vec<Rational> = coefficients
         .iter()
         .map(|c| {
@@ -77,7 +88,9 @@ pub fn normalize_coefficients(coefficients: Vec<f32>) -> Result<Vec<usize>, Stri
         .iter()
         .cloned()
         .combinations(2)
-        .fold(1, |acc, cur| max(acc, lcm(cur[0] as usize, cur[1] as usize)));
+        .fold(1, |acc, cur| {
+            max(acc, lcm(cur[0] as usize, cur[1] as usize))
+        });
     debug!("Scaling coefficients by: {}", scale);
     let mut scaled_coefficients: Vec<usize> = rational_limited
         .iter()
@@ -152,8 +165,8 @@ pub fn limit_denominator(
 #[cfg(test)]
 #[allow(non_snake_case)]
 mod tests {
-    use crate::model::*;
     use crate::model::Reaction;
+    use crate::model::*;
 
     macro_rules! parse_balanced_reagent {
         (($subst:tt, $coef: tt)) => {
@@ -252,7 +265,8 @@ mod tests {
     #[test]
     fn test_missing_products() {
         // Fe3 + Cl5 = Cl2Fe5H2O
-        let rxn: Result<Reaction, String> = new_reaction!(Fe3 + Cl5 = Cl2Fe5H2O);
+        let rxn: Result<Reaction, String> =
+            new_reaction!(Fe3 + Cl5 = Cl2Fe5H2O);
         assert!(
             rxn.is_err(),
             format!("Balance solution was not Err: {:?}", rxn),
@@ -283,5 +297,4 @@ mod tests {
         expect_coefficients!(Al2S3O12 + CaO2H2 = AlO3H3 + CaSO4 => 1 + 3 + 2 + 3);
         expect_coefficients!(H2SO4 + HI = H2S + I2 + H2O => 1 + 8 + 1 + 4 + 4);
     }
-
 }

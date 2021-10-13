@@ -101,7 +101,7 @@ pub fn parse_formula(
                 {
                     i += 1
                 }
-                let mult: usize= match i_start == i {
+                let mult: usize = match i_start == i {
                     true => 1,
                     false => {
                         let multiplicity_str = formula.get(i_start..i).unwrap();

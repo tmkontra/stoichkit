@@ -10,19 +10,27 @@ pub struct Reaction {
 }
 
 impl Reaction {
-    pub fn new(reactants: Vec<Compound>, products: Vec<Compound>) -> Result<Reaction, String> {
-        let rxn = Reaction { reactants, products };
+    pub fn new(
+        reactants: Vec<Compound>,
+        products: Vec<Compound>,
+    ) -> Result<Reaction, String> {
+        let rxn = Reaction {
+            reactants,
+            products,
+        };
         rxn.check_elements()?;
-        return Ok(rxn)
+        return Ok(rxn);
     }
 
     pub fn len(&self) -> usize {
-        return self.reactants.len() + self.products.len()
+        return self.reactants.len() + self.products.len();
     }
 
     fn check_elements(&self) -> Result<(), String> {
-        let reagent_atoms: HashSet<&Element> = Reaction::elements_from(&self.reactants);
-        let product_atoms: HashSet<&Element> = Reaction::elements_from(&self.products);
+        let reagent_atoms: HashSet<&Element> =
+            Reaction::elements_from(&self.reactants);
+        let product_atoms: HashSet<&Element> =
+            Reaction::elements_from(&self.products);
         return if !&reagent_atoms.eq(&product_atoms) {
             let missing_products: HashSet<_> =
                 reagent_atoms.difference(&product_atoms).collect();
@@ -34,23 +42,27 @@ impl Reaction {
             )
         } else {
             Ok(())
-        }
+        };
     }
 
     pub fn balance(&self) -> Result<BalancedReaction, String> {
-        let mx =
-            solve::build_matrix(
-                &self.all_elements(),
-                self.all_compounds(),
-                self.len());
+        let mx = solve::build_matrix(
+            &self.all_elements(),
+            self.all_compounds(),
+            self.len(),
+        );
         let coefficients: Vec<f32> = solve::solve_system(mx, self.len() - 1)?;
         debug!("Got solution coefficients: {:?}", &coefficients);
         trace!("Converting to rationals");
-        let scaled_coefficients: Vec<usize> = solve::normalize_coefficients(coefficients)?;
-        let result: Vec<Reactant> = self.all_compounds()
+        let scaled_coefficients: Vec<usize> =
+            solve::normalize_coefficients(coefficients)?;
+        let result: Vec<Reactant> = self
+            .all_compounds()
             .into_iter()
             .zip(&mut scaled_coefficients.iter().map(|c| c.to_owned()))
-            .map(|(c, coefficient)| Reactant::of_compound(c.to_owned(), coefficient))
+            .map(|(c, coefficient)| {
+                Reactant::of_compound(c.to_owned(), coefficient)
+            })
             .collect();
         let (reagents_result, products_result) =
             result.split_at(self.reactants.len());
@@ -69,15 +81,10 @@ impl Reaction {
     }
 
     pub fn all_compounds(&self) -> Vec<&Compound> {
-        self.reactants.iter()
-            .chain(self.products.iter())
-            .collect()
+        self.reactants.iter().chain(self.products.iter()).collect()
     }
 
     fn elements_from(compounds: &Vec<Compound>) -> HashSet<&Element> {
-        compounds
-            .iter()
-            .flat_map(|c| c.all_elements())
-            .collect()
+        compounds.iter().flat_map(|c| c.all_elements()).collect()
     }
 }

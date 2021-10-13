@@ -10,7 +10,10 @@ pub struct BalancedReaction {
 }
 
 impl BalancedReaction {
-    pub fn new(reactants: Vec<Reactant>, products: Vec<Reactant>) -> Result<BalancedReaction, String> {
+    pub fn new(
+        reactants: Vec<Reactant>,
+        products: Vec<Reactant>,
+    ) -> Result<BalancedReaction, String> {
         if BalancedReaction::check_balance(&reactants, &products) {
             Ok(BalancedReaction {
                 reactants,
@@ -21,9 +24,14 @@ impl BalancedReaction {
         }
     }
 
-    fn check_balance(reactants: &Vec<Reactant>, products: &Vec<Reactant>) -> bool {
-        let react_elems: HashMap<Element, usize> = Reactant::fold_elements(&reactants);
-        let prod_elems: HashMap<Element, usize> = Reactant::fold_elements(&products);
+    fn check_balance(
+        reactants: &Vec<Reactant>,
+        products: &Vec<Reactant>,
+    ) -> bool {
+        let react_elems: HashMap<Element, usize> =
+            Reactant::fold_elements(&reactants);
+        let prod_elems: HashMap<Element, usize> =
+            Reactant::fold_elements(&products);
         debug!(
             "Checking balanced?: Reagent elements: {:?} === Product elements: {:?}",
             react_elems, prod_elems
@@ -59,20 +67,20 @@ impl BalancedReaction {
 
     #[allow(dead_code)]
     pub(crate) fn all_coefficients(&self) -> Vec<usize> {
-        self.reactants.iter()
+        self.reactants
+            .iter()
             .chain(self.products.iter())
             .map(|r| r.molar_coefficient)
             .collect()
     }
 }
 
-
 struct ReactantMap(HashMap<String, usize>);
 
 impl FromIterator<Reactant> for ReactantMap {
     fn from_iter<R>(reactants: R) -> Self
-        where
-            R: IntoIterator<Item = Reactant>,
+    where
+        R: IntoIterator<Item = Reactant>,
     {
         let mut m = HashMap::new();
         for r in reactants {
@@ -95,4 +103,3 @@ impl PartialEq for BalancedReaction {
         !self.eq(other)
     }
 }
-

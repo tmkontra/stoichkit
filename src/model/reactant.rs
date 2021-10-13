@@ -1,6 +1,5 @@
-use std::collections::HashMap;
 use crate::model::{Compound, Element};
-
+use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 pub struct Reactant {
@@ -16,7 +15,10 @@ impl Reactant {
         }
     }
 
-    pub fn from_formula(formula: &str, coefficient: usize) -> Result<Self, String> {
+    pub fn from_formula(
+        formula: &str,
+        coefficient: usize,
+    ) -> Result<Self, String> {
         let cmp = Compound::from_formula(formula);
         Ok(Reactant {
             compound: cmp?,

@@ -26,11 +26,9 @@ impl Compound {
     }
 
     fn molecular_weight(atoms: &HashMap<Element, usize>) -> f32 {
-        atoms
-            .into_iter()
-            .fold(
-                0 as f32,
-                |acc, (e, count)| acc + e.get_atomic_mass() * count.to_owned() as f32)
+        atoms.into_iter().fold(0 as f32, |acc, (e, count)| {
+            acc + e.get_atomic_mass() * count.to_owned() as f32
+        })
     }
 
     pub fn all_elements(&self) -> Vec<&Element> {
