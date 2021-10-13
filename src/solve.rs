@@ -1,182 +1,99 @@
 use std::cmp::max;
-use std::collections::{HashMap, HashSet};
 
 use itertools::Itertools;
 use nalgebra::DMatrix;
 use num::integer::lcm;
 use rug::Rational;
 
-use crate::model::{BalancedReaction, Compound, Element, Reactant};
+use crate::model::Compound;
+use crate::model::Element;
 
-pub fn balance(
-    reagents: Vec<Compound>,
-    products: Vec<Compound>,
-) -> Result<BalancedReaction, String> {
-    let mut reagent_atoms: HashSet<&Element> = HashSet::new();
-    let mut product_atoms: HashSet<&Element> = HashSet::new();
-    for r in &reagents {
-        for e in r.atoms.keys() {
-            reagent_atoms.insert(e);
-        }
-    }
-    for p in &products {
-        for e in p.atoms.keys() {
-            product_atoms.insert(e);
-        }
-    }
-    if !&reagent_atoms.eq(&product_atoms) {
-        let missing_products: HashSet<_> =
-            reagent_atoms.difference(&product_atoms).collect();
-        let missing_reagents: HashSet<_> =
-            product_atoms.difference(&reagent_atoms).collect();
-        return Err(format!(
-            "Equation cannot be balanced. Reagent elements that are not in products = {:?}. Product elements that are not in products = {:?}",
-            missing_products, missing_reagents)
-        );
-    }
-    let all_atoms: Vec<&Element> = reagent_atoms
-        .iter()
-        .chain(product_atoms.iter())
-        .cloned()
-        .collect();
-    let elements: Vec<&Element> = all_atoms.iter().cloned().collect();
-    let mut all_compounds: Vec<Compound> = Vec::new();
+pub fn build_matrix(all_elements: &Vec<&Element>, all_compounds: Vec<&Compound>, ncols: usize) -> DMatrix<f64> {
     let mut matrix: Vec<f64> = Vec::new();
     debug!("Building matrix");
-    let mut push_atom = |input_compounds: &Vec<&Compound>,
-                         element: &Element| {
-        for compound in input_compounds {
-            all_compounds.push(compound.to_owned().to_owned());
+    for element in all_elements {
+        debug!("Getting coefficients for {:?}", element);
+        for compound in all_compounds.clone() {
             let coefficient =
-                compound.atoms.get(element).cloned().unwrap_or(0 as u32);
-            trace!(
-                "Pushing {:?}*{:?} from {:?}",
-                coefficient,
-                element,
-                compound
-            );
+                compound.atoms.get(element).cloned().unwrap_or(0 as usize);
+            trace!("Pushing {:?}*{:?} from {:?}", coefficient, element, compound);
             matrix.push(coefficient as f64);
         }
-    };
-    for element in all_atoms.iter() {
-        debug!("Getting coefficients for {:?}", element);
-        push_atom(&reagents.iter().collect(), element);
-        push_atom(&products.iter().collect(), element);
     }
     debug!("Constructing matrix");
-    let mx = DMatrix::from_row_slice(
-        elements.len(),
-        reagents.len() + products.len(),
+    DMatrix::from_row_slice(
+        all_elements.len(),
+        ncols,
         matrix.as_slice(),
-    );
-    let c = reagents.len() + products.len() - 1;
-    let (a, b) = mx.columns_range_pair(0..c, c..);
-    let x = a.svd(true, true);
-    debug!("Solving equation system");
-    let solution = x.solve(&b, 0.0)?;
-    debug!("Solution: {:?}", solution);
-    let coefficients: Vec<f32> =
-        solution.column(0).iter().map(|c| *c as f32).collect();
-    debug!("Got solution coefficients: {:?}", &coefficients);
-    trace!("Converting to rationals");
-    let rational_coeffs: Vec<Rational> = coefficients
+    )
+}
+
+pub fn solve_system(mx: DMatrix<f64>, ncols: usize) -> Result<Vec<f32>, String> {
+    let (a, b) = mx.columns_range_pair(0..ncols, ncols..);
+    let solution = if (!a.is_square()) {
+        debug!("Solving non-square matrix by SVD");
+        let x = a.svd(true, true);
+        debug!("Solving equation system");
+        x.solve(&b, 0.0)?
+    } else {
+        debug!("Solving square matrix by LU");
+        let x = a.lu();
+        debug!("Solving equation system");
+        x.solve(&b).expect(format!("Failed to solve matrix! {:?}", x).as_str())
+    };
+    Ok(solution.column(0).iter().map(|c| *c as f32).collect())
+}
+
+pub fn normalize_coefficients(coefficients: Vec<f32>) -> Result<Vec<usize>, String> {
+    let rational_coefficients: Vec<Rational> = coefficients
         .iter()
-        .cloned()
         .map(|c| {
             trace!("Constructing rational from {:?}", &c);
-            Rational::from_f32(c).ok_or_else(|| {
+            Rational::from_f32(c.to_owned()).ok_or_else(|| {
                 format!("Could not construct rational from: {:?}", &c)
             })
         })
         .collect::<Result<Vec<Rational>, String>>()?;
-    trace!("Got rational coefficients: {:?}", &rational_coeffs);
+    trace!("Got rational coefficients: {:?}", &rational_coefficients);
     trace!("Limiting denominators");
-    let rational_limited: Vec<Rational> = rational_coeffs
+    let rational_limited: Vec<Rational> = rational_coefficients
         .iter()
-        .cloned()
-        .map(|r| limit_denominator(&r.abs(), 100))
+        .map(|r| limit_denominator(&r.clone().abs(), 100))
         .collect::<Result<Vec<Rational>, String>>()?;
     trace!("Limited rational coefficients: {:?}", rational_limited);
-    let denominators: Vec<u64> = rational_limited
+    let denominators: Vec<usize> = rational_limited
         .iter()
-        .cloned()
         .map(|c| {
-            c.denom().to_u64().ok_or_else(|| {
+            c.denom().to_usize().ok_or_else(|| {
                 format!(
                     "Could not convert denominator {:?} to u64!",
                     &c.denom()
                 )
             })
         })
-        .collect::<Result<Vec<u64>, String>>()?;
+        .collect::<Result<Vec<usize>, String>>()?;
     trace!("Got denominators: {:?}", &denominators);
-    let scale: u64 = denominators
+    let scale: usize = denominators
         .iter()
         .cloned()
         .combinations(2)
-        .fold(1, |acc, cur| max(acc, lcm(cur[0] as u64, cur[1] as u64)));
+        .fold(1, |acc, cur| max(acc, lcm(cur[0] as usize, cur[1] as usize)));
     debug!("Scaling coefficients by: {}", scale);
-    let mut scaled_coeffs: Vec<u64> = rational_limited
+    let mut scaled_coefficients: Vec<usize> = rational_limited
         .iter()
         .map(|f| f * Rational::from((scale, 1)))
         .map(|f| {
-            f.numer().to_u64().ok_or_else(|| {
+            f.numer().to_usize().ok_or_else(|| {
                 format!("Could not convert scaled {:?} to u64", &f.numer())
             })
         })
-        .collect::<Result<Vec<u64>, String>>()?;
-    scaled_coeffs.push(scale);
-    trace!("Got scaled coefficients: {:?}", scaled_coeffs);
-    let result: Vec<Reactant> = all_compounds
-        .iter()
-        .map(|compound| compound.to_owned())
-        .zip(&mut scaled_coeffs.iter().map(|c| c.to_owned()))
-        .map(|(c, coeff)| Reactant::of_compound(c, coeff as u32))
-        .collect();
-    let (reagents_result, products_result) = result.split_at(reagents.len());
-    if check_balance(reagents_result, products_result)? {
-        let reaction = BalancedReaction::new(
-            reagents_result.to_vec(),
-            products_result.to_vec(),
-        );
-        Ok(reaction)
-    } else {
-        Err(format!("Equation could not be balanced!"))
-    }
+        .collect::<Result<Vec<usize>, String>>()?;
+    scaled_coefficients.push(scale);
+    trace!("Got scaled coefficients: {:?}", scaled_coefficients);
+    Ok(scaled_coefficients)
 }
 
-fn check_balance(
-    reactants: &[Reactant],
-    products: &[Reactant],
-) -> Result<bool, String> {
-    let react_elems: HashMap<Element, u64> = reactants
-        .iter()
-        .map(|s| (&s.compound.atoms, s.molar_coefficient))
-        .fold(HashMap::new(), |mut acc, (item, coeff)| {
-            for (e, c) in item {
-                let counter = acc.entry(e.to_owned()).or_insert(0);
-                *counter += *c as u64 * coeff as u64;
-            }
-            acc
-        });
-    let prod_elems: HashMap<Element, u64> = products
-        .iter()
-        .map(|s| (&s.compound.atoms, s.molar_coefficient))
-        .fold(HashMap::new(), |mut acc, (item, coeff)| {
-            for (e, c) in item {
-                let counter = acc.entry(e.to_owned()).or_insert(0);
-                *counter += *c as u64 * coeff as u64;
-            }
-            acc
-        });
-    debug!(
-        "Checking balanced?: Reagent elements: {:?} === Product elements: {:?}",
-        react_elems, prod_elems
-    );
-    Ok(react_elems.eq(&prod_elems))
-}
-
-fn limit_denominator(
+pub fn limit_denominator(
     given: &Rational,
     max_denominator: u64,
 ) -> Result<Rational, String> {
@@ -236,7 +153,7 @@ fn limit_denominator(
 #[allow(non_snake_case)]
 mod tests {
     use crate::model::*;
-    use crate::solve::balance;
+    use crate::model::Reaction;
 
     macro_rules! parse_balanced_reagent {
         (($subst:tt, $coef: tt)) => {
@@ -245,6 +162,17 @@ mod tests {
         ($subst:tt) => {
             Reactant::from_formula(stringify!($subst), 1).unwrap()
         };
+    }
+
+    macro_rules! new_reaction {
+        ($reactSubst:tt $( + $reactSubstTail:tt)* = $prodSubst:tt $( + $prodSubstTail:tt)*) => {{
+            // Al + Cl2 = AlCl3
+            let reagents = vec![stringify!($reactSubst) $(,stringify!($reactSubstTail))*];
+            let products = vec![stringify!($prodSubst) $(,stringify!($prodSubstTail))*];
+            let r = reagents.into_iter().map(|r| Compound::from_formula(r).unwrap()).collect();
+            let p = products.into_iter().map(|r| Compound::from_formula(r).unwrap()).collect();
+            Reaction::new(r, p)
+        }};
     }
 
     /**
@@ -257,12 +185,11 @@ mod tests {
             let products = vec![stringify!($prodSubst) $(,stringify!($prodSubstTail))*];
             let exp_reag = vec![parse_balanced_reagent!($expectedReactant) $(, parse_balanced_reagent!($expectedReactantTail))*];
             let exp_prod = vec![parse_balanced_reagent!($expectedProduct) $(, parse_balanced_reagent!($expectedProductTail))*];
-            let solution = balance(
-                _formulas_to_compounds(reagents),
-                _formulas_to_compounds(products),
-            )
-            .unwrap();
-            assert_eq!(solution, BalancedReaction::new(exp_reag, exp_prod))
+            let r = reagents.into_iter().map(|r| Compound::from_formula(r).unwrap()).collect();
+            let p = products.into_iter().map(|r| Compound::from_formula(r).unwrap()).collect();
+            let reaction = Reaction::new(r, p).unwrap();
+            let solution = reaction.balance().unwrap();
+            assert_eq!(solution, BalancedReaction::new(exp_reag, exp_prod).unwrap())
         };
     }
 
@@ -310,27 +237,23 @@ mod tests {
 
     #[test]
     fn test_missing_products() {
-        //Fe3 + Cl5 = Cl2Fe5H2O
-        let rg = vec!["Fe3", "Cl5"];
-        let pd = vec!["Cl2Fe5H2O"];
-        let result =
-            balance(_formulas_to_compounds(rg), _formulas_to_compounds(pd));
+        // Fe3 + Cl5 = Cl2Fe5H2O
+        let rxn: Result<Reaction, String> = new_reaction!(Fe3 + Cl5 = Cl2Fe5H2O);
         assert!(
-            result.is_err(),
-            format!("Balance solution was not Err: {:?}", result),
+            rxn.is_err(),
+            format!("Balance solution was not Err: {:?}", rxn),
         )
     }
 
     #[test]
     fn test_impossible_reaction() {
         // H2O + NO2 = HNO3
-        let rg = vec!["H2O", "NO2"];
-        let pd = vec!["HNO3"];
-        let result =
-            balance(_formulas_to_compounds(rg), _formulas_to_compounds(pd));
+        let rxn = new_reaction!(H2O + NO2 = HNO3).unwrap();
+        let result = rxn.balance();
         assert!(
             result.is_err(),
             format!("Balance solution was not Err: {:?}", result),
         )
     }
+
 }

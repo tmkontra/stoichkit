@@ -2,13 +2,16 @@ extern crate clap;
 #[macro_use]
 extern crate log;
 
+use std::fs::read_to_string;
+
 use clap::Clap;
 use itertools::Itertools;
 
-use std::fs::read_to_string;
 use stoichkit::ext::parse_chemdraw_reaction;
-use stoichkit::model::{Compound, Substance, YieldReaction};
-use stoichkit::solve::balance;
+use stoichkit::model::Compound;
+use stoichkit::model::Reaction;
+use stoichkit::model::Sample;
+use stoichkit::model::YieldReaction;
 
 #[derive(Clap)]
 #[clap(version = "0.2.0")]
@@ -76,14 +79,15 @@ impl Unbal {
                 (result.reactants, result.products)
             }
         };
-        let balanced = balance(reagents, products)?;
+        let rxn = Reaction::new(reagents, products)?;
+        let balanced = rxn.balance()?;
         Ok(balanced.display_string())
     }
 }
 
 impl ReactionList {
     pub fn reaction(&self) -> Result<YieldReaction, String> {
-        let mut substances: Vec<Substance> = vec![];
+        let mut substances: Vec<Sample> = vec![];
         for (i, pair) in
             self.substances.chunks(2).map(|c| c.to_vec()).enumerate()
         {
@@ -94,10 +98,10 @@ impl ReactionList {
                 ));
             }
             let stoich: Vec<&str> = pair[0].as_str().split('*').collect();
-            let (coeff, formula): (u32, &str) = match stoich.len() {
+            let (coeff, formula): (usize, &str) = match stoich.len() {
                 1 => (1, pair[0].as_str()),
                 2 => (
-                    stoich.first().unwrap().parse::<u32>().map_err(|_| {
+                    stoich.first().unwrap().parse::<usize>().map_err(|_| {
                         format!(
                             "Invalid coeffcieint {} for substance {}",
                             stoich.first().unwrap(),
@@ -114,7 +118,7 @@ impl ReactionList {
                     ))
                 }
             };
-            let substance = Substance::from_formula(
+            let substance = Sample::from_formula(
                 formula,
                 pair[1].clone().parse::<f32>().map_err(|_| {
                     format!(
