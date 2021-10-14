@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use itertools::fold;
 use nom::branch::alt;
 use nom::bytes::complete::{take_until, take_while, take_while1};
-use nom::character::complete::digit1;
+use nom::character::complete::{digit1, one_of};
 use nom::combinator::map;
 use nom::multi::many0;
 use nom::{
@@ -75,7 +75,7 @@ fn group(group: &str) -> IResult<&str, HashMap<Element, u64>> {
 fn multi_group(multi_group: &str) -> IResult<&str, HashMap<Element, u64>> {
     map(
         pair(
-            delimited(tag("("), group, tag(")")),
+            delimited(one_of("([{"), group, one_of(")]}")),
             opt(multiplier).map(|m| m.unwrap_or(1)),
         ),
         |(group, multiplier)| {
@@ -196,6 +196,28 @@ mod tests {
         exp.insert(Element::from_symbol("C").unwrap(), 7);
         exp.insert(Element::from_symbol("H").unwrap(), 6);
         exp.insert(Element::from_symbol("O").unwrap(), 2);
+        assert_eq!(map, exp);
+    }
+
+    #[test]
+    fn test_brackets() {
+        let formula = "H2[SO4]2";
+        let map = parse_formula_v2(formula).unwrap();
+        let mut exp = HashMap::new();
+        exp.insert(Element::from_symbol("H").unwrap(), 2);
+        exp.insert(Element::from_symbol("S").unwrap(), 2);
+        exp.insert(Element::from_symbol("O").unwrap(), 8);
+        assert_eq!(map, exp);
+    }
+
+    #[test]
+    fn test_curly_brace() {
+        let formula = "H2{SO4}2";
+        let map = parse_formula_v2(formula).unwrap();
+        let mut exp = HashMap::new();
+        exp.insert(Element::from_symbol("H").unwrap(), 2);
+        exp.insert(Element::from_symbol("S").unwrap(), 2);
+        exp.insert(Element::from_symbol("O").unwrap(), 8);
         assert_eq!(map, exp);
     }
 }
