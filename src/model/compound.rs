@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::model::Element;
-use crate::parse::parse_formula;
+use crate::parse;
 
 #[derive(Clone, Debug)]
 pub struct Compound {
@@ -16,7 +16,11 @@ impl Compound {
     }
 
     pub fn new(formula: &str) -> Result<Compound, String> {
-        let atoms: HashMap<Element, usize> = parse_formula(formula)?;
+        let atoms: HashMap<Element, u64> = parse::parse_formula_v2(formula)?;
+        let atoms = atoms
+            .iter()
+            .map(|(k, v)| (k.to_owned(), *v as usize))
+            .collect();
         let molecular_weight: f32 = Compound::molecular_weight(&atoms);
         Ok(Compound {
             formula: formula.to_string(),

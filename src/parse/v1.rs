@@ -1,27 +1,9 @@
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
+use std::fmt::format;
 use std::panic;
 
 use crate::model::Element;
-
-fn get_element(symbol: &str) -> Result<Element, String> {
-    match symbol.chars().all(|c| c.is_ascii_alphabetic()) {
-        true => {
-            let e: Result<Option<Element>, _> =
-                panic::catch_unwind(|| Element::from_symbol(symbol));
-            e.unwrap_or(None)
-                .ok_or(format!("Invalid symbol {}", symbol))
-        }
-        false => Err(format!("Invalid symbol {}", symbol)),
-    }
-}
-
-pub fn get_element_by_id(id: u8) -> Result<Element, String> {
-    let e: Result<Option<Element>, _> =
-        panic::catch_unwind(|| Element::from_atomic_number(id.into()));
-    e.unwrap_or(None)
-        .ok_or(format!("Invalid atomic number {}", id))
-}
 
 // translated from https://leetcode.com/articles/number-of-atoms/#
 pub fn parse_formula(
@@ -95,7 +77,7 @@ pub fn parse_formula(
                 let name = formula.get(i_start..i).unwrap();
                 i_start = i;
                 trace!("Captured symbol {:?}", name);
-                let elem: Element = get_element(name)?;
+                let elem: Element = element_from_string(name)?;
                 while i < formula_len
                     && formula.chars().nth(i).unwrap().is_digit(10)
                 {
@@ -144,6 +126,25 @@ pub fn parse_formula(
             .to_owned();
         Ok(result)
     }
+}
+
+pub fn element_from_string(symbol: &str) -> Result<Element, String> {
+    match symbol.chars().all(|c| c.is_ascii_alphabetic()) {
+        true => {
+            let e: Result<Option<Element>, _> =
+                panic::catch_unwind(|| Element::from_symbol(symbol));
+            e.unwrap_or(None)
+                .ok_or(format!("Invalid symbol {}", symbol))
+        }
+        false => Err(format!("Invalid symbol {}", symbol)),
+    }
+}
+
+pub fn get_element_by_id(id: u8) -> Result<Element, String> {
+    let e: Result<Option<Element>, _> =
+        panic::catch_unwind(|| Element::from_atomic_number(id.into()));
+    e.unwrap_or(None)
+        .ok_or(format!("Invalid atomic number {}", id))
 }
 
 #[cfg(test)]

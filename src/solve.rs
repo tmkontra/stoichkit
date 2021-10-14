@@ -50,7 +50,8 @@ pub fn solve_system(
         x.solve(&b)
             .expect(format!("Failed to solve matrix! {:?}", x).as_str())
     };
-    let coefficients = solution.column(0).iter().map(|c| c.to_owned()).collect();
+    let coefficients =
+        solution.column(0).iter().map(|c| c.to_owned()).collect();
     Ok(coefficients)
 }
 
