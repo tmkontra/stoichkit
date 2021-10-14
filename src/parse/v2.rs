@@ -21,7 +21,7 @@ use nom::{
 use periodic_table_on_an_enum::Element::Hydrogen;
 
 use crate::model::Element;
-use crate::parse::element_from_string;
+use crate::parse::v1::element_from_string;
 
 /// Parse an elemental symbol, e.g. H, He, Na, S, Co
 fn symbol(sym: &str) -> IResult<&str, Element> {
@@ -56,7 +56,12 @@ fn element(elem: &str) -> IResult<&str, (Element, u64)> {
 /// Sums a vector of elements and their multipliers,
 /// rolling them into a map
 fn sum_elements(vec: Vec<(Element, u64)>) -> HashMap<Element, u64> {
-    vec.into_iter().collect()
+    vec.into_iter()
+        .fold(HashMap::new(), |mut acc, (element, num)| {
+            let entry: &mut u64 = acc.entry(element.to_owned()).or_insert(0);
+            *entry += num;
+            acc
+        })
 }
 
 /// Parses a group, which is a sequence of elements, each optionally
@@ -118,7 +123,7 @@ fn formula_parser(formula: &str) -> IResult<&str, HashMap<Element, u64>> {
     map(
         map(
             pair(many1(alt((multi_group, group))), opt(hydrate)),
-            |(groups, maybeHydrate)| match &maybeHydrate {
+            |(groups, maybe_hydrate)| match &maybe_hydrate {
                 None => groups,
                 Some(hydrate) => {
                     let mut hydrate_group = groups.to_owned();
@@ -180,6 +185,17 @@ mod tests {
         exp.insert(Element::from_symbol("H").unwrap(), 14);
         exp.insert(Element::from_symbol("S").unwrap(), 2);
         exp.insert(Element::from_symbol("O").unwrap(), 14);
+        assert_eq!(map, exp);
+    }
+
+    #[test]
+    fn test_organic() {
+        let formula = "C6H5COOH";
+        let map = parse_formula_v2(formula).unwrap();
+        let mut exp = HashMap::new();
+        exp.insert(Element::from_symbol("C").unwrap(), 7);
+        exp.insert(Element::from_symbol("H").unwrap(), 6);
+        exp.insert(Element::from_symbol("O").unwrap(), 2);
         assert_eq!(map, exp);
     }
 }
