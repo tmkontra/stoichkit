@@ -51,11 +51,10 @@ impl Reaction {
             self.all_compounds(),
             self.len(),
         );
-        let coefficients: Vec<f32> = solve::solve_system(mx, self.len() - 1)?;
+        let coefficients: Vec<f64> = solve::solve_system(mx, self.len() - 1)?;
         debug!("Got solution coefficients: {:?}", &coefficients);
         trace!("Converting to rationals");
-        let scaled_coefficients: Vec<usize> =
-            solve::normalize_coefficients(coefficients)?;
+        let scaled_coefficients: Vec<usize> = solve::normalize_coefficients(coefficients)?;
         let result: Vec<Reactant> = self
             .all_compounds()
             .into_iter()
@@ -64,12 +63,28 @@ impl Reaction {
                 Reactant::of_compound(c.to_owned(), coefficient)
             })
             .collect();
+        Reaction::check_all_nonzero(&result)?;
         let (reagents_result, products_result) =
             result.split_at(self.reactants.len());
         BalancedReaction::new(
             reagents_result.to_vec(),
             products_result.to_vec(),
         )
+    }
+
+    fn check_all_nonzero(reactants: &Vec<Reactant>) -> Result<(), String> {
+        let zeroes = reactants
+            .iter()
+            .filter(|r| r.molar_coefficient == 0)
+            .map(|c| c.compound.formula.as_str())
+            .collect::<Vec<&str>>();
+        if !zeroes.is_empty() {
+            let formulas = zeroes.join(", ");
+            let err_msg =
+                format!("0 coefficient is not a valid solution! Got 0 for: {}", formulas);
+            return Err(err_msg)
+        }
+        Ok(())
     }
 
     pub fn all_elements(&self) -> Vec<&Element> {

@@ -36,7 +36,7 @@ pub fn build_matrix(
 pub fn solve_system(
     mx: DMatrix<f64>,
     ncols: usize,
-) -> Result<Vec<f32>, String> {
+) -> Result<Vec<f64>, String> {
     let (a, b) = mx.columns_range_pair(0..ncols, ncols..);
     let solution = if !a.is_square() {
         debug!("Solving non-square matrix by SVD");
@@ -50,17 +50,18 @@ pub fn solve_system(
         x.solve(&b)
             .expect(format!("Failed to solve matrix! {:?}", x).as_str())
     };
-    Ok(solution.column(0).iter().map(|c| *c as f32).collect())
+    let coefficients = solution.column(0).iter().map(|c| c.to_owned()).collect();
+    Ok(coefficients)
 }
 
 pub fn normalize_coefficients(
-    coefficients: Vec<f32>,
+    coefficients: Vec<f64>,
 ) -> Result<Vec<usize>, String> {
     let rational_coefficients: Vec<Rational> = coefficients
         .iter()
         .map(|c| {
             trace!("Constructing rational from {:?}", &c);
-            Rational::from_f32(c.to_owned()).ok_or_else(|| {
+            Rational::from_f64(c.to_owned()).ok_or_else(|| {
                 format!("Could not construct rational from: {:?}", &c)
             })
         })
@@ -281,6 +282,17 @@ mod tests {
         assert!(
             result.is_err(),
             format!("Balance solution was not Err: {:?}", result),
+        )
+    }
+
+    #[test]
+    fn test_impossible_reaction_2() {
+        // some coefficients from matrix solution will be 0
+        let rxn = new_reaction!(Cu + HNO3 = CuN2O6 + NO2 + H2O2).unwrap();
+        let result = rxn.balance();
+        assert!(
+            result.is_err(),
+            format!("Balance solution was not Err: {:?}", result)
         )
     }
 
