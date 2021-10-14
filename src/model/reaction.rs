@@ -54,7 +54,8 @@ impl Reaction {
         let coefficients: Vec<f64> = solve::solve_system(mx, self.len() - 1)?;
         debug!("Got solution coefficients: {:?}", &coefficients);
         trace!("Converting to rationals");
-        let scaled_coefficients: Vec<usize> = solve::normalize_coefficients(coefficients)?;
+        let scaled_coefficients: Vec<usize> =
+            solve::normalize_coefficients(coefficients)?;
         let result: Vec<Reactant> = self
             .all_compounds()
             .into_iter()
@@ -80,9 +81,11 @@ impl Reaction {
             .collect::<Vec<&str>>();
         if !zeroes.is_empty() {
             let formulas = zeroes.join(", ");
-            let err_msg =
-                format!("0 coefficient is not a valid solution! Got 0 for: {}", formulas);
-            return Err(err_msg)
+            let err_msg = format!(
+                "0 coefficient is not a valid solution! Got 0 for: {}",
+                formulas
+            );
+            return Err(err_msg);
         }
         Ok(())
     }
