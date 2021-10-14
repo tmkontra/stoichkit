@@ -51,7 +51,7 @@ On macOS BLAS can be installed via `brew install openblas`.
 
 - [x] Accept all reagents and determine limiting reagent.
 - [ ] Add desktop GUI (maybe)
-- [ ] Use StoichKit to power a web UI (`stoichkitweb` under development [here](https://github.com/ttymck/stoichkitweb))
+- [x] Use StoichKit to power a web UI (`stoichkitweb` available [here](https://github.com/ttymck/stoichkitweb))
 - [x] Implement chemical equation balancer
 - [ ] Test linear algebra suite on other platforms
  
