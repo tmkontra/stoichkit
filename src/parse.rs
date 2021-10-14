@@ -26,8 +26,8 @@ pub fn get_element_by_id(id: u8) -> Result<Element, String> {
 // translated from https://leetcode.com/articles/number-of-atoms/#
 pub fn parse_formula(
     formula: &str,
-) -> Result<HashMap<Element, u32, RandomState>, String> {
-    let mut stack: Vec<HashMap<Element, u32>> = vec![HashMap::new()];
+) -> Result<HashMap<Element, usize, RandomState>, String> {
+    let mut stack: Vec<HashMap<Element, usize>> = vec![HashMap::new()];
     let mut i: usize = 0;
     let formula_len: usize = formula.len();
     let mut broken: bool = false;
@@ -49,12 +49,12 @@ pub fn parse_formula(
                         {
                             i += 1;
                         }
-                        let mult: u32 = match i_start == i {
+                        let mult: usize = match i_start == i {
                             true => 1,
                             false => {
                                 let multiplicity_str =
                                     formula.get(i_start..i).unwrap();
-                                multiplicity_str.parse::<u32>().unwrap()
+                                multiplicity_str.parse::<usize>().unwrap()
                             }
                         };
                         trace!(
@@ -101,11 +101,11 @@ pub fn parse_formula(
                 {
                     i += 1
                 }
-                let mult: u32 = match i_start == i {
+                let mult: usize = match i_start == i {
                     true => 1,
                     false => {
                         let multiplicity_str = formula.get(i_start..i).unwrap();
-                        multiplicity_str.parse::<u32>().unwrap()
+                        multiplicity_str.parse::<usize>().unwrap()
                     }
                 };
                 trace!("Got multiplicity {:?} for element {:?}", mult, name);
@@ -153,27 +153,27 @@ mod tests {
 
     use crate::model::Element;
     use crate::parse::parse_formula;
-    use crate::test_utils::e;
+    use crate::test_utils::parse_elements;
 
     #[test]
     fn ethane() {
         let formula = "C2H6";
         let result = parse_formula(formula).ok().unwrap();
-        let expected: HashMap<&str, u32> =
+        let expected: HashMap<&str, usize> =
             [("C", 2), ("H", 6)].iter().cloned().collect();
-        assert_eq!(result, e(expected));
+        assert_eq!(result, parse_elements(expected));
     }
 
     #[test]
     fn nickel_tert_butoxide() {
         let formula = "Ni[OC(CH3)3]2";
         let result = parse_formula(formula).ok().unwrap();
-        let expected: HashMap<&str, u32> =
+        let expected: HashMap<&str, usize> =
             [("Ni", 1), ("O", 2), ("C", 8), ("H", 18)]
                 .iter()
                 .cloned()
                 .collect();
-        assert_eq!(result, e(expected));
+        assert_eq!(result, parse_elements(expected));
     }
 
     #[test]
@@ -194,11 +194,11 @@ mod tests {
     #[test]
     fn mismatched_bracket_types() {
         let formula: &str = "{C2H6)12";
-        let result: HashMap<Element, u32, RandomState> =
+        let result: HashMap<Element, usize, RandomState> =
             parse_formula(formula).ok().unwrap();
-        let expected: HashMap<&str, u32> =
+        let expected: HashMap<&str, usize> =
             [("C", 24), ("H", 72)].iter().cloned().collect();
-        assert_eq!(result, e(expected));
+        assert_eq!(result, parse_elements(expected));
     }
 
     #[test]
