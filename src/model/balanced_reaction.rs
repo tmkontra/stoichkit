@@ -14,20 +14,20 @@ impl BalancedReaction {
         reactants: Vec<Reactant>,
         products: Vec<Reactant>,
     ) -> Result<BalancedReaction, String> {
-        if BalancedReaction::check_balance(&reactants, &products) {
-            Ok(BalancedReaction {
+        match BalancedReaction::check_balance(&reactants, &products) {
+            Ok(_) => Ok(BalancedReaction {
                 reactants,
                 products,
-            })
-        } else {
-            Err(format!("Equation is not be balanced!"))
+            }),
+            Err((reactants, products)) =>
+                Err(format!("Equation is not be balanced\n{:?}\n{:?}", reactants, products))
         }
     }
 
     fn check_balance(
         reactants: &Vec<Reactant>,
         products: &Vec<Reactant>,
-    ) -> bool {
+    ) -> Result<(), (HashMap<Element, usize>, HashMap<Element, usize>)> {
         let react_elems: HashMap<Element, usize> =
             Reactant::fold_elements(&reactants);
         let prod_elems: HashMap<Element, usize> =
@@ -36,7 +36,10 @@ impl BalancedReaction {
             "Checking balanced?: Reagent elements: {:?} === Product elements: {:?}",
             react_elems, prod_elems
         );
-        react_elems.eq(&prod_elems)
+        match react_elems.eq(&prod_elems) {
+            true => Ok(()),
+            false => Err((react_elems, prod_elems))
+        }
     }
 
     fn reactants_display_string(&self) -> String {

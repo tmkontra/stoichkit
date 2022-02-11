@@ -8,10 +8,10 @@ use clap::Clap;
 use itertools::Itertools;
 
 use stoichkit::ext::parse_chemdraw_reaction;
-use stoichkit::model::Compound;
 use stoichkit::model::Reaction;
 use stoichkit::model::Sample;
-use stoichkit::model::YieldReaction;
+use stoichkit::model::{BalancedReaction, Compound, Reactant};
+use stoichkit::model::{TheoreticalReaction, YieldReaction};
 
 #[derive(Clap)]
 #[clap(version = "0.2.0")]
@@ -30,6 +30,7 @@ struct ReactionList {
 
 #[derive(Clap)]
 enum Subcommand {
+    TheoreticalYield(ReactionList),
     Yield(ReactionList),
     Balance(Unbal),
 }
@@ -86,54 +87,114 @@ impl Unbal {
 }
 
 impl ReactionList {
-    pub fn reaction(&self) -> Result<YieldReaction, String> {
-        let mut substances: Vec<Sample> = vec![];
-        for (i, pair) in
-            self.substances.chunks(2).map(|c| c.to_vec()).enumerate()
-        {
-            if pair.len() < 2 {
-                return Err(format!(
-                    "Got substance with no mass at position {}",
-                    i + 1
-                ));
-            }
-            let stoich: Vec<&str> = pair[0].as_str().split('*').collect();
-            let (coeff, formula): (usize, &str) = match stoich.len() {
-                1 => (1, pair[0].as_str()),
-                2 => (
-                    stoich.first().unwrap().parse::<usize>().map_err(|_| {
-                        format!(
-                            "Invalid coeffcieint {} for substance {}",
-                            stoich.first().unwrap(),
-                            pair[0]
-                        )
-                    })?,
-                    stoich.iter().cloned().last().unwrap(),
-                ),
-                _ => {
-                    return Err(format!(
-                        "Invalid formula {} at position {}",
-                        pair[0],
-                        i + 1
-                    ))
-                }
-            };
-            let substance = Sample::from_formula(
-                formula,
-                pair[1].clone().parse::<f32>().map_err(|_| {
-                    format!(
-                        "Invalid mass {} for substance {}",
-                        pair[1], pair[0]
-                    )
-                })?,
-                coeff,
-            )?;
-            substances.push(substance);
-        }
+    pub fn yield_reaction(&self) -> Result<YieldReaction, String> {
+        let substances =
+            ReactionList::mass_pairs_to_substances(self.substances.clone())?;
         let (product, reagents) = substances
             .split_last()
             .ok_or_else(|| "Invalid substance list!".to_string())?;
         Ok(YieldReaction::new(reagents.to_vec(), product.to_owned()))
+    }
+
+    pub fn theoretical_reaction(&self) -> Result<TheoreticalReaction, String> {
+        let reagent_input: Vec<String> = self
+            .substances
+            .clone()
+            .into_iter()
+            .take_while(|a| a.as_str() != "=")
+            .collect();
+        let rx_len = reagent_input.clone().len() + 1;
+        let product_input: Vec<String> = self
+            .substances
+            .clone()
+            .into_iter()
+            .dropping(rx_len)
+            .collect();
+        match (reagent_input.clone().len(), product_input.clone().len()) {
+            (x, y) if x >= 1 as usize && y >= 1 as usize => Ok(()),
+            _ => Err("Must provide at least 1 reactant and 1 product"),
+        }?;
+        let reactant_samples: Vec<Sample> =
+            ReactionList::mass_pairs_to_substances(reagent_input)?;
+        let products: Result<Vec<Reactant>, String> =
+            product_input.into_iter()
+                .enumerate()
+                .map(|(i, p)| ReactionList::str_to_reactant(p, i))
+                .collect();
+        let reactants = reactant_samples
+            .clone()
+            .into_iter()
+            .map(|r| r.reactant.to_owned())
+            .collect();
+        let reaction = BalancedReaction::new(reactants, products?)?;
+        Ok(TheoreticalReaction::new(reaction, reactant_samples))
+    }
+
+    fn str_to_reactant(
+        formula: String,
+        index: usize,
+    ) -> Result<Reactant, String> {
+        let stoich: Vec<&str> = formula.as_str().split('*').collect();
+        let (coeff, formula): (usize, &str) = match stoich.len() {
+            1 => (1, formula.as_str()),
+            2 => (
+                stoich.first().unwrap().parse::<usize>().map_err(|_| {
+                    format!(
+                        "Invalid coefficient {} for substance {}",
+                        stoich.first().unwrap(),
+                        formula
+                    )
+                })?,
+                stoich.iter().cloned().last().unwrap(),
+            ),
+            _ => {
+                return Err(format!(
+                    "Invalid formula {} at position {}",
+                    formula,
+                    index + 1
+                ))
+            }
+        };
+        Reactant::from_formula(formula, coeff)
+    }
+
+    fn collect_mass_pairs(
+        substance_strings: Vec<String>,
+    ) -> Result<Vec<(String, String)>, String> {
+        substance_strings
+            .chunks(2)
+            .map(|c| c.to_vec().to_owned())
+            .map(|pair| {
+                if pair.len() < 2 {
+                    return Err(format!(
+                        "Got substance with no mass: {}",
+                        pair[0]
+                    ));
+                } else {
+                    Ok((pair[0].to_owned(), pair[1].to_owned()))
+                }
+            })
+            .collect()
+    }
+
+    fn mass_pairs_to_substances(
+        substance_strings: Vec<String>,
+    ) -> Result<Vec<Sample>, String> {
+        let mut substances = vec![];
+        for (i, pair) in ReactionList::collect_mass_pairs(substance_strings)?
+            .into_iter()
+            .enumerate()
+        {
+            let reactant = ReactionList::str_to_reactant(pair.0.to_owned(), i)?;
+            let substance = Sample::of_reactant(
+                reactant,
+                pair.1.clone().parse::<f32>().map_err(|_| {
+                    format!("Invalid mass {} for substance {}", pair.1, pair.0)
+                })?,
+            );
+            substances.push(substance);
+        }
+        Ok(substances)
     }
 }
 
@@ -141,10 +202,18 @@ fn main() {
     env_logger::Builder::from_env("STOICHKIT_LOG").init();
     let opts: Cli = Cli::parse();
     match opts.command {
-        Subcommand::Yield(r) => match r.reaction().map(|r| r.percent_yield()) {
-            Ok(yld) => println!("Yield: {:?}", yld),
-            Err(msg) => println!("ERROR: {:?}", msg),
-        },
+        Subcommand::TheoreticalYield(r) => {
+            match r.theoretical_reaction().map(|r| r.yields()) {
+                Ok(yields) => yields.iter().for_each(|y| println!("{}", y)),
+                Err(msg) => println!("ERROR: {:?}", msg),
+            }
+        }
+        Subcommand::Yield(r) => {
+            match r.yield_reaction().map(|r| r.percent_yield()) {
+                Ok(yld) => println!("Yield: {:?}", yld),
+                Err(msg) => println!("ERROR: {:?}", msg),
+            }
+        }
         Subcommand::Balance(u) => {
             let result = u.balance().unwrap_or_else(|e| e);
             println!("{}", result);
