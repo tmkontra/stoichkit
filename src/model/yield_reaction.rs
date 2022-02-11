@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 
 use crate::model::{Reactant, Sample};
+use crate::model::theoretical_reaction::YieldUnits;
 
 #[derive(Debug, Clone)]
 pub struct YieldReaction {
@@ -29,9 +30,7 @@ pub fn theoretical_yield(limiting: &Sample, product: &Reactant) -> f32 {
         * (product.molar_coefficient as f32
             / limiting.reactant.molar_coefficient as f32);
     debug!("Theoretical moles of product: {}", exp_moles);
-    let exp_grams = exp_moles * product.compound.molar_mass;
-    debug!("Theoretical yield of product (g): {}", exp_grams);
-    exp_grams
+    exp_moles
 }
 
 impl YieldReaction {
@@ -45,7 +44,7 @@ impl YieldReaction {
 
     pub fn theoretical_yield(self: &Self) -> f32 {
         let limiting = self.limiting_reagent();
-        theoretical_yield(&limiting, &self.product.reactant)
+        theoretical_yield(&limiting, &self.product.reactant) * self.product.reactant.compound.molar_mass
     }
 
     pub fn percent_yield(self: &Self) -> f32 {

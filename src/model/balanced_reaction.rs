@@ -46,7 +46,7 @@ impl BalancedReaction {
         let balanced: Vec<String> = self
             .reactants
             .iter()
-            .map(|r| format!("{} {}", r.molar_coefficient, r.compound.formula))
+            .map(|r| format!("{}*{}", r.molar_coefficient, r.compound.formula))
             .collect();
         balanced.join(" + ")
     }
@@ -55,7 +55,7 @@ impl BalancedReaction {
         let balanced: Vec<String> = self
             .products
             .iter()
-            .map(|r| format!("{} {}", r.molar_coefficient, r.compound.formula))
+            .map(|r| format!("{}*{}", r.molar_coefficient, r.compound.formula))
             .collect();
         balanced.join(" + ")
     }

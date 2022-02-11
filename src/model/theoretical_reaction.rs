@@ -1,5 +1,5 @@
 use std::cmp::Ordering;
-
+use clap::ArgEnum;
 use crate::model::{
     yield_reaction, BalancedReaction, Reactant, Sample, YieldReaction,
 };
@@ -10,14 +10,34 @@ pub struct TheoreticalReaction {
     pub reactants: Vec<Sample>,
 }
 
+#[derive(ArgEnum, Clone)]
+pub enum YieldUnits {
+    Mass,
+    Moles
+}
+
+impl YieldUnits {
+    pub fn unit_str(&self) -> &'static str {
+        match self {
+            YieldUnits::Mass => "g",
+            YieldUnits::Moles => "mol"
+        }
+    }
+}
+
 impl TheoreticalReaction {
-    pub fn yields(&self) -> Vec<f32> {
+    pub fn yields(&self, units: &YieldUnits) -> Vec<(Reactant, f32)> {
         let limiting =
             yield_reaction::limiting_reagent(self.reactants.to_owned());
         self.reaction
             .products
             .iter()
             .map(|p| yield_reaction::theoretical_yield(&limiting, p))
+            .zip(self.reaction.products.to_owned())
+            .map(|(moles, product)| match units {
+                YieldUnits::Mass => (product.to_owned(), moles * product.compound.molar_mass.to_owned()),
+                YieldUnits::Moles => (product, moles)
+            })
             .collect()
     }
 }

@@ -5,6 +5,7 @@ pub use reactant::Reactant;
 pub use reaction::Reaction;
 pub use sample::Sample;
 pub use theoretical_reaction::TheoreticalReaction;
+pub use theoretical_reaction::YieldUnits;
 pub use yield_reaction::YieldReaction;
 
 mod balanced_reaction;

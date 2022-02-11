@@ -1,43 +1,55 @@
 extern crate clap;
+extern crate core;
 #[macro_use]
 extern crate log;
 
 use std::fs::read_to_string;
 
-use clap::Clap;
+use clap::{AppSettings, Args, Parser, Subcommand};
 use itertools::Itertools;
 
 use stoichkit::ext::parse_chemdraw_reaction;
+use stoichkit::model::{BalancedReaction, Compound, Reactant, YieldUnits};
+use stoichkit::model::{TheoreticalReaction, YieldReaction};
 use stoichkit::model::Reaction;
 use stoichkit::model::Sample;
-use stoichkit::model::{BalancedReaction, Compound, Reactant};
-use stoichkit::model::{TheoreticalReaction, YieldReaction};
 
-#[derive(Clap)]
-#[clap(version = "0.2.0")]
+#[derive(Parser)]
+#[clap(name = "stoichkit")]
+#[clap(about = "A stoichiometry toolkit.", long_about = None, version = "0.3.0")]
 struct Cli {
     #[clap(subcommand)]
-    command: Subcommand,
+    command: Commands,
 }
 
-#[derive(Clap)]
-struct ReactionList {
-    #[clap(
-        about = "Fully balanced chemical reaction list: [<coeff>*]<formula> <grams>, coeff defaults to 1"
-    )]
-    substances: Vec<String>,
-}
-
-#[derive(Clap)]
-enum Subcommand {
-    TheoreticalYield(ReactionList),
-    Yield(ReactionList),
+#[derive(Subcommand)]
+enum Commands {
+    TheoreticalYield(TheoreticalArgs),
+    Yield(YieldArgs),
     Balance(Unbal),
+    // Pvnrt(GasArgs) TODO,
 }
 
-#[derive(Clap)]
+#[derive(Args)]
+struct TheoreticalArgs {
+    substances: Vec<String>,
+    #[clap(short, long, arg_enum)]
+    units: Option<YieldUnits>,
+}
+
+#[derive(Args)]
+struct YieldArgs {
+    substances: Vec<String>
+}
+
+struct ReactionList {
+    substances: Vec<String>
+}
+
+
+#[derive(Args)]
 struct Unbal {
-    #[clap(about = "Chemical equation [...reactants] = [...products]")]
+    #[clap(help = "Chemical equation [...reactants] = [...products]")]
     substances: Vec<String>,
     #[clap(short, conflicts_with = "substances")]
     chemdraw_file: Option<String>,
@@ -202,19 +214,23 @@ fn main() {
     env_logger::Builder::from_env("STOICHKIT_LOG").init();
     let opts: Cli = Cli::parse();
     match opts.command {
-        Subcommand::TheoreticalYield(r) => {
-            match r.theoretical_reaction().map(|r| r.yields()) {
-                Ok(yields) => yields.iter().for_each(|y| println!("{}", y)),
-                Err(msg) => println!("ERROR: {:?}", msg),
-            }
+        Commands::TheoreticalYield(TheoreticalArgs { substances, units }) => {
+            (ReactionList { substances }).theoretical_reaction().map(|r| {
+                let units = units.unwrap_or(YieldUnits::Mass);
+                r.yields(&units)
+                    .iter()
+                    .for_each(|(product, yld)|
+                        println!("{} {} {}", product.compound.formula, yld, units.unit_str()))
+            }).unwrap_or_else(|e| println!("ERROR: {}", e))
         }
-        Subcommand::Yield(r) => {
+        Commands::Yield(YieldArgs{ substances }) => {
+            let r = ReactionList { substances };
             match r.yield_reaction().map(|r| r.percent_yield()) {
                 Ok(yld) => println!("Yield: {:?}", yld),
                 Err(msg) => println!("ERROR: {:?}", msg),
             }
         }
-        Subcommand::Balance(u) => {
+        Commands::Balance(u) => {
             let result = u.balance().unwrap_or_else(|e| e);
             println!("{}", result);
         }
