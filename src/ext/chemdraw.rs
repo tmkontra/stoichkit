@@ -1,6 +1,6 @@
-use std::fs::read_to_string;
 use crate::model::{Compound, Reaction};
 use serde::Deserialize;
+use std::fs::read_to_string;
 
 #[derive(Deserialize, Debug)]
 struct ChemdrawReaction {

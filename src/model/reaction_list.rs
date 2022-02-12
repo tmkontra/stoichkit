@@ -7,7 +7,7 @@ use crate::model::*;
 use crate::model::{TheoreticalReaction, YieldReaction};
 
 pub struct ReactionList {
-    substances: Vec<String>
+    substances: Vec<String>,
 }
 
 impl ReactionList {
@@ -17,13 +17,12 @@ impl ReactionList {
 
     pub fn yield_reaction(&self) -> Result<YieldReaction, String> {
         let (reagent_input, product_input) = self.split_reagents_products();
-        let reagents =
-            ReactionList::mass_pairs_to_substances(reagent_input)?;
+        let reagents = ReactionList::mass_pairs_to_substances(reagent_input)?;
         let products = ReactionList::mass_pairs_to_substances(product_input)?;
         let product = match products.len() {
             0 => Err("Must specify a product!"),
             1 => Ok(products.first().unwrap()),
-            _ => Err("Must specify only one product!")
+            _ => Err("Must specify only one product!"),
         }?;
         Ok(YieldReaction::new(reagents.to_vec(), product.to_owned()))
     }
@@ -36,11 +35,11 @@ impl ReactionList {
         }?;
         let reactant_samples: Vec<Sample> =
             ReactionList::mass_pairs_to_substances(reagent_input)?;
-        let products: Result<Vec<Reactant>, String> =
-            product_input.into_iter()
-                .enumerate()
-                .map(|(i, p)| ReactionList::str_to_reactant(p, i))
-                .collect();
+        let products: Result<Vec<Reactant>, String> = product_input
+            .into_iter()
+            .enumerate()
+            .map(|(i, p)| ReactionList::str_to_reactant(p, i))
+            .collect();
         let reactants = reactant_samples
             .clone()
             .into_iter()
@@ -52,10 +51,14 @@ impl ReactionList {
 
     pub fn reaction(&self) -> Result<Reaction, String> {
         let (reagents, products) = self.split_reagents_products();
-        let reagents: Result<Vec<Compound>, String> =
-            reagents.into_iter().map(|f| Compound::from_formula(f.as_str())).collect();
-        let products: Result<Vec<Compound>, String> =
-            products.into_iter().map(|f| Compound::from_formula(f.as_str())).collect();
+        let reagents: Result<Vec<Compound>, String> = reagents
+            .into_iter()
+            .map(|f| Compound::from_formula(f.as_str()))
+            .collect();
+        let products: Result<Vec<Compound>, String> = products
+            .into_iter()
+            .map(|f| Compound::from_formula(f.as_str()))
+            .collect();
         Reaction::new(reagents?, products?)
     }
 
@@ -139,9 +142,7 @@ impl ReactionList {
             .enumerate()
         {
             let reactant = ReactionList::str_to_reactant(pair.0.to_owned(), i)?;
-            let substance = Sample::of_reactant(
-                reactant, pair.1,
-            );
+            let substance = Sample::of_reactant(reactant, pair.1);
             substances.push(substance);
         }
         Ok(substances)

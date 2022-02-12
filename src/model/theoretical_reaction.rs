@@ -1,6 +1,8 @@
-use std::cmp::Ordering;
+use crate::model::{
+    yield_reaction, BalancedReaction, Reactant, Sample, Units, YieldReaction,
+};
 use clap::ArgEnum;
-use crate::model::{yield_reaction, BalancedReaction, Reactant, Sample, YieldReaction, Units};
+use std::cmp::Ordering;
 
 #[derive(Debug, Clone)]
 pub struct TheoreticalReaction {
@@ -11,14 +13,14 @@ pub struct TheoreticalReaction {
 #[derive(ArgEnum, Clone)]
 pub enum YieldUnits {
     Mass,
-    Moles
+    Moles,
 }
 
 impl Into<Units> for YieldUnits {
     fn into(self) -> Units {
         match self {
             YieldUnits::Mass => Units::Grams,
-            YieldUnits::Moles => Units::Moles
+            YieldUnits::Moles => Units::Moles,
         }
     }
 }
@@ -33,8 +35,11 @@ impl TheoreticalReaction {
             .map(|p| yield_reaction::theoretical_yield(&limiting, p))
             .zip(self.reaction.products.to_owned())
             .map(|(moles, product)| match units {
-                YieldUnits::Mass => (product.to_owned(), moles * product.compound.molar_mass.to_owned()),
-                YieldUnits::Moles => (product, moles)
+                YieldUnits::Mass => (
+                    product.to_owned(),
+                    moles * product.compound.molar_mass.to_owned(),
+                ),
+                YieldUnits::Moles => (product, moles),
             })
             .collect()
     }

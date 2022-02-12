@@ -3,7 +3,7 @@ use std::fmt::{Display, Formatter};
 pub enum Units {
     Grams,
     Percent,
-    Moles
+    Moles,
 }
 
 impl Display for Units {
@@ -11,7 +11,7 @@ impl Display for Units {
         let str = match self {
             Units::Grams => "g",
             Units::Percent => "%",
-            Units::Moles => "mol"
+            Units::Moles => "mol",
         };
         write!(f, "{}", str)
     }

@@ -19,8 +19,10 @@ impl BalancedReaction {
                 reactants,
                 products,
             }),
-            Err((reactants, products)) =>
-                Err(format!("Equation is not be balanced\n{:?}\n{:?}", reactants, products))
+            Err((reactants, products)) => Err(format!(
+                "Equation is not be balanced\n{:?}\n{:?}",
+                reactants, products
+            )),
         }
     }
 
@@ -38,29 +40,21 @@ impl BalancedReaction {
         );
         match react_elems.eq(&prod_elems) {
             true => Ok(()),
-            false => Err((react_elems, prod_elems))
+            false => Err((react_elems, prod_elems)),
         }
     }
 
     fn reactants_display_string(&self, explicit: bool) -> String {
-        let balanced: Vec<String> = self
-            .reactants
-            .iter()
-            .map(|r| r.format(explicit))
-            .collect();
+        let balanced: Vec<String> =
+            self.reactants.iter().map(|r| r.format(explicit)).collect();
         balanced.join(" + ")
     }
 
     fn products_display_string(&self, explicit: bool) -> String {
-        let balanced: Vec<String> = self
-            .products
-            .iter()
-            .map(|r| r.format(explicit))
-            .collect();
+        let balanced: Vec<String> =
+            self.products.iter().map(|r| r.format(explicit)).collect();
         balanced.join(" + ")
     }
-
-
 
     pub fn display_string(&self, explicit: bool) -> String {
         format!(
