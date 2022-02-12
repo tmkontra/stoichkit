@@ -1,3 +1,2 @@
-mod cdrxn;
+pub mod chemdraw;
 
-pub use cdrxn::parse_chemdraw_reaction;

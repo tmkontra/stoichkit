@@ -1,8 +1,6 @@
 use std::cmp::Ordering;
 use clap::ArgEnum;
-use crate::model::{
-    yield_reaction, BalancedReaction, Reactant, Sample, YieldReaction,
-};
+use crate::model::{yield_reaction, BalancedReaction, Reactant, Sample, YieldReaction, Units};
 
 #[derive(Debug, Clone)]
 pub struct TheoreticalReaction {
@@ -16,11 +14,11 @@ pub enum YieldUnits {
     Moles
 }
 
-impl YieldUnits {
-    pub fn unit_str(&self) -> &'static str {
+impl Into<Units> for YieldUnits {
+    fn into(self) -> Units {
         match self {
-            YieldUnits::Mass => "g",
-            YieldUnits::Moles => "mol"
+            YieldUnits::Mass => Units::Grams,
+            YieldUnits::Moles => Units::Moles
         }
     }
 }

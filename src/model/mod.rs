@@ -7,6 +7,8 @@ pub use sample::Sample;
 pub use theoretical_reaction::TheoreticalReaction;
 pub use theoretical_reaction::YieldUnits;
 pub use yield_reaction::YieldReaction;
+pub use reaction_list::ReactionList;
+pub use units::Units;
 
 mod balanced_reaction;
 mod compound;
@@ -16,3 +18,5 @@ mod reaction;
 mod sample;
 mod theoretical_reaction;
 mod yield_reaction;
+mod reaction_list;
+mod units;
