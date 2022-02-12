@@ -7,33 +7,64 @@ A toolkit for stoichiometry.
 - `balance`: Balances a chemical equation
 - `yield`: Calculates percent yield
   - given a fully balanced chemical reaction, and respective masses (in grams)
+- `moles` calculates moles given formula and mass (grams)
+- `theoretical-yield`: Calculate theoretical yield of all products 
+  - given fully balanced chemical equation and reagent masses
 
 ### Usage
 
 ```$xslt
-$ stoichkit --help
-stoichkit 0.2.0
+stoichkit 0.6.0
+A stoichiometry toolkit.
 
 USAGE:
     stoichkit <SUBCOMMAND>
 
-FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
+OPTIONS:
+    -h, --help       Print help information
+    -V, --version    Print version information
 
 SUBCOMMANDS:
-    balance    
-    help       Prints this message or the help of the given subcommand(s)
-    yield 
+    balance              
+    help                 Print this message or the help of the given subcommand(s)
+    moles                
+    theoretical-yield    
+    yield
 ```
 
+### Examples
+
+#### Balance
 ```
-$ stoichkit yield "2*Al" 2.8 "3*Cl2" 4.25 "2*AlCl3" 4.889
-Yield: 0.91756254
+$ stoichkit balance H2O O2 = H2O2
+2*H2O + O2 = 2*H2O2
+
+$ stoichkit balance -x H2O O2 = H2O2
+2*H2O + 1*O2 = 2*H2O2
 ```
+
+#### Moles
 ```
-$ stoichkit balance Al Cl2 = AlCl3                     
-2 Al + 3 Cl2 = 2 AlCl3
+$ stoichkit moles C4H6 0.7254
+0.013410485 mol
+```
+
+#### Theoretical Yield
+```
+$ stoichkit theoretical-yield "2*H2O2" 4.0 = "2*H2O" O2 
+H2O 2.1185393 g
+O2 1.8814605 g
+
+$ stoichkit theoretical-yield --units moles "2*H2O2" 4.0 = "2*H2O" O2
+H2O 0.11759864 mol
+O2 0.05879932 mol
+```
+
+#### Yield
+
+```
+$ stoichkit yield '2*H2O2' 4.0 = '2*H2O' 2.1184621`
+H2O 0.9999635 %
 ```
 
 ### Installation
@@ -54,4 +85,5 @@ On macOS BLAS can be installed via `brew install openblas`.
 - [x] Use StoichKit to power a web UI (`stoichkitweb` available [here](https://github.com/ttymck/stoichkitweb))
 - [x] Implement chemical equation balancer
 - [ ] Test linear algebra suite on other platforms
+- [ ] Ideal Gas calculations
  

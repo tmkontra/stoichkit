@@ -10,7 +10,7 @@ use crate::model::{BalancedReaction, Compound, Units, YieldUnits};
 
 #[derive(Parser)]
 #[clap(name = "stoichkit")]
-#[clap(about = "A stoichiometry toolkit.", long_about = None, version = "0.3.0")]
+#[clap(about = "A stoichiometry toolkit.", long_about = None, version = "0.6.0")]
 pub struct Cli {
     #[clap(subcommand)]
     command: Commands,

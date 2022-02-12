@@ -1,9 +1,9 @@
 [package]
 name = "stoichkit"
 description = "A stoichiometry toolkit"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Tyler M. Kontra"]
-edition = "2018"
+edition = "2021"
 license-file = "LICENSE"
 repository = "https://github.com/ttymck/stoichkit"
 categories = ["science", "command-line-utilities"]
