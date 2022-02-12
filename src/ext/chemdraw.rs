@@ -1,13 +1,14 @@
-use crate::model::Compound;
+use crate::model::{Compound, Reaction};
 use serde::Deserialize;
+use std::fs::read_to_string;
 
 #[derive(Deserialize, Debug)]
-struct Reaction {
+struct ChemdrawReaction {
     #[serde(rename(deserialize = "STEPS"))]
     steps: Vec<Step>,
 }
 
-impl Reaction {
+impl ChemdrawReaction {
     pub fn reactants(&self) -> Vec<String> {
         self.steps
             .first()
@@ -61,10 +62,21 @@ pub struct ParsedReaction {
     pub products: Vec<Compound>,
 }
 
+pub fn parse_chemdraw_file(file_path: &str) -> Result<Reaction, String> {
+    let s = read_to_string(file_path)
+        .map_err(|_e| format!("Could not read file {:?}", file_path))?;
+    let result = parse_chemdraw_reaction(s.as_str())?;
+    info!(
+        "Parsed reaction {:?} = {:?}",
+        result.reactants, result.products
+    );
+    Reaction::new(result.reactants, result.products)
+}
+
 pub fn parse_chemdraw_reaction(
     document: &str,
 ) -> Result<ParsedReaction, String> {
-    let parsed: Vec<Reaction> = serde_json::from_str(document)
+    let parsed: Vec<ChemdrawReaction> = serde_json::from_str(document)
         .map_err(|e| format!("Could not parse: {:?}", e))?;
     let rxn = parsed.first().ok_or("No reactions!".to_string())?;
     let reactants: Vec<Compound> = rxn

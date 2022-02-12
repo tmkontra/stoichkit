@@ -144,8 +144,8 @@ fn formula_parser(formula: &str) -> IResult<&str, HashMap<Element, u64>> {
 pub fn parse_formula_v2(
     formula: &str,
 ) -> Result<HashMap<Element, u64>, String> {
-    let (rem, elems) =
-        formula_parser(formula).map_err(|_e| "failed!".to_string())?;
+    let (rem, elems) = formula_parser(formula)
+        .map_err(|e| format!("failed to parse: {:?}", formula))?;
     Ok(elems)
 }
 

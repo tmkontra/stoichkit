@@ -14,20 +14,22 @@ impl BalancedReaction {
         reactants: Vec<Reactant>,
         products: Vec<Reactant>,
     ) -> Result<BalancedReaction, String> {
-        if BalancedReaction::check_balance(&reactants, &products) {
-            Ok(BalancedReaction {
+        match BalancedReaction::check_balance(&reactants, &products) {
+            Ok(_) => Ok(BalancedReaction {
                 reactants,
                 products,
-            })
-        } else {
-            Err(format!("Equation is not be balanced!"))
+            }),
+            Err((reactants, products)) => Err(format!(
+                "Equation is not be balanced\n{:?}\n{:?}",
+                reactants, products
+            )),
         }
     }
 
     fn check_balance(
         reactants: &Vec<Reactant>,
         products: &Vec<Reactant>,
-    ) -> bool {
+    ) -> Result<(), (HashMap<Element, usize>, HashMap<Element, usize>)> {
         let react_elems: HashMap<Element, usize> =
             Reactant::fold_elements(&reactants);
         let prod_elems: HashMap<Element, usize> =
@@ -36,32 +38,29 @@ impl BalancedReaction {
             "Checking balanced?: Reagent elements: {:?} === Product elements: {:?}",
             react_elems, prod_elems
         );
-        react_elems.eq(&prod_elems)
+        match react_elems.eq(&prod_elems) {
+            true => Ok(()),
+            false => Err((react_elems, prod_elems)),
+        }
     }
 
-    fn reactants_display_string(&self) -> String {
-        let balanced: Vec<String> = self
-            .reactants
-            .iter()
-            .map(|r| format!("{} {}", r.molar_coefficient, r.compound.formula))
-            .collect();
+    fn reactants_display_string(&self, explicit: bool) -> String {
+        let balanced: Vec<String> =
+            self.reactants.iter().map(|r| r.format(explicit)).collect();
         balanced.join(" + ")
     }
 
-    fn products_display_string(&self) -> String {
-        let balanced: Vec<String> = self
-            .products
-            .iter()
-            .map(|r| format!("{} {}", r.molar_coefficient, r.compound.formula))
-            .collect();
+    fn products_display_string(&self, explicit: bool) -> String {
+        let balanced: Vec<String> =
+            self.products.iter().map(|r| r.format(explicit)).collect();
         balanced.join(" + ")
     }
 
-    pub fn display_string(&self) -> String {
+    pub fn display_string(&self, explicit: bool) -> String {
         format!(
             "{} = {}",
-            self.reactants_display_string(),
-            self.products_display_string()
+            self.reactants_display_string(explicit),
+            self.products_display_string(explicit)
         )
     }
 
