@@ -42,29 +42,31 @@ impl BalancedReaction {
         }
     }
 
-    fn reactants_display_string(&self) -> String {
+    fn reactants_display_string(&self, explicit: bool) -> String {
         let balanced: Vec<String> = self
             .reactants
             .iter()
-            .map(|r| format!("{}*{}", r.molar_coefficient, r.compound.formula))
+            .map(|r| r.format(explicit))
             .collect();
         balanced.join(" + ")
     }
 
-    fn products_display_string(&self) -> String {
+    fn products_display_string(&self, explicit: bool) -> String {
         let balanced: Vec<String> = self
             .products
             .iter()
-            .map(|r| format!("{}*{}", r.molar_coefficient, r.compound.formula))
+            .map(|r| r.format(explicit))
             .collect();
         balanced.join(" + ")
     }
 
-    pub fn display_string(&self) -> String {
+
+
+    pub fn display_string(&self, explicit: bool) -> String {
         format!(
             "{} = {}",
-            self.reactants_display_string(),
-            self.products_display_string()
+            self.reactants_display_string(explicit),
+            self.products_display_string(explicit)
         )
     }
 

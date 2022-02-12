@@ -25,7 +25,7 @@ struct Cli {
 enum Commands {
     TheoreticalYield(TheoreticalArgs),
     Yield(YieldArgs),
-    Balance(UnbalancedEquation),
+    Balance(UnbalancedEquationArgs),
     Moles {
         substances: Vec<String>
     }
@@ -57,14 +57,16 @@ impl ResultList {
 
 
 #[derive(Args)]
-struct UnbalancedEquation {
+struct UnbalancedEquationArgs {
     #[clap(help = "Chemical equation [...reactants] = [...products]")]
     substances: Vec<String>,
     #[clap(short, conflicts_with = "substances")]
     chemdraw_file: Option<String>,
+    #[clap(short = 'x', long)]
+    explicit: bool
 }
 
-impl UnbalancedEquation {
+impl UnbalancedEquationArgs {
     pub fn balance(&self) -> Result<BalancedReaction, String> {
         let rxn = match &self.chemdraw_file {
             None =>
@@ -99,9 +101,9 @@ fn main() {
                         Units::Percent
                     ))
         }
-        Commands::Balance(equation) =>
-            equation.balance()
-                .map(|balanced| println!("{}", balanced.display_string())),
+        Commands::Balance(args) =>
+            args.balance()
+                .map(|balanced| println!("{}", balanced.display_string(args.explicit))),
         Commands::Moles { substances } => {
             ReactionList::new(substances)
                 .substance_list()
