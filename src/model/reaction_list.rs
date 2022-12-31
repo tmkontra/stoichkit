@@ -91,7 +91,7 @@ impl ReactionList {
         let (coeff, formula): (usize, &str) = match stoich.len() {
             1 => (1, formula.as_str()),
             2 => (
-                stoich.first().unwrap().parse::<usize>().map_err(|_| {
+                stoich.first().unwrap().parse().map_err(|_| {
                     format!(
                         "Invalid coefficient {} for substance {}",
                         stoich.first().unwrap(),
@@ -124,9 +124,9 @@ impl ReactionList {
                         pair[0]
                     ));
                 } else {
-                    match pair[1].parse::<f32>() {
+                    match pair[1].parse() {
                         Ok(mass) => Ok((pair[0].to_owned(), mass)),
-                        Err(e) => Err(format!("Expected mass for '{}', but could not parse '{}' as float.", pair[0], pair[1]))
+                        Err(_) => Err(format!("Expected mass for '{}', but could not parse '{}' as float.", pair[0], pair[1]))
                     }
                 }
             })

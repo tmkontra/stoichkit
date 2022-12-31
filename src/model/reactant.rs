@@ -40,7 +40,7 @@ impl Reactant {
     }
 
     pub fn format(&self, explicit: bool) -> String {
-        if (self.molar_coefficient != 1 || explicit) {
+        if self.molar_coefficient != 1 || explicit {
             format!("{}*{}", self.molar_coefficient, self.compound.formula)
         } else {
             format!("{}", self.compound.formula)

@@ -1,5 +1,3 @@
-use std::cmp::max;
-
 use itertools::Itertools;
 use nalgebra::DMatrix;
 use num::integer::lcm;
@@ -91,7 +89,8 @@ pub fn normalize_coefficients(
         .cloned()
         .combinations(2)
         .fold(1, |acc, cur| {
-            max(acc, lcm(cur[0] as usize, cur[1] as usize))
+            let cur_lcm = lcm(cur[0] as usize, cur[1] as usize);
+            return acc.max(cur_lcm)
         });
     debug!("Scaling coefficients by: {}", scale);
     let mut scaled_coefficients: Vec<usize> = rational_limited
@@ -271,7 +270,7 @@ mod tests {
             new_reaction!(Fe3 + Cl5 = Cl2Fe5H2O);
         assert!(
             rxn.is_err(),
-            format!("Balance solution was not Err: {:?}", rxn),
+            "Balance solution was not Err: {:?}", rxn
         )
     }
 
@@ -282,7 +281,7 @@ mod tests {
         let result = rxn.balance();
         assert!(
             result.is_err(),
-            format!("Balance solution was not Err: {:?}", result),
+            "Balance solution was not Err: {:?}", result
         )
     }
 
@@ -293,7 +292,7 @@ mod tests {
         let result = rxn.balance();
         assert!(
             result.is_err(),
-            format!("Balance solution was not Err: {:?}", result)
+            "Balance solution was not Err: {:?}", result
         )
     }
 

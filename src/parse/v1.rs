@@ -1,6 +1,5 @@
 use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
-use std::fmt::format;
 use std::panic;
 
 use crate::model::Element;
@@ -139,13 +138,13 @@ pub fn element_from_string(symbol: &str) -> Result<Element, String> {
         false => Err(format!("Invalid symbol {}", symbol)),
     }
 }
-
-pub fn get_element_by_id(id: u8) -> Result<Element, String> {
-    let e: Result<Option<Element>, _> =
-        panic::catch_unwind(|| Element::from_atomic_number(id.into()));
-    e.unwrap_or(None)
-        .ok_or(format!("Invalid atomic number {}", id))
-}
+//
+// pub fn get_element_by_id(id: u8) -> Result<Element, String> {
+//     let e: Result<Option<Element>, _> =
+//         panic::catch_unwind(|| Element::from_atomic_number(id.into()));
+//     e.unwrap_or(None)
+//         .ok_or(format!("Invalid atomic number {}", id))
+// }
 
 #[cfg(test)]
 mod tests {

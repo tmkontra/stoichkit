@@ -1,8 +1,7 @@
 use crate::model::{
-    yield_reaction, BalancedReaction, Reactant, Sample, Units, YieldReaction,
+    yield_reaction, BalancedReaction, Reactant, Sample, Units,
 };
 use clap::ArgEnum;
-use std::cmp::Ordering;
 
 #[derive(Debug, Clone)]
 pub struct TheoreticalReaction {

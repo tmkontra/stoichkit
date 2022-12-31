@@ -1,12 +1,8 @@
-use std::fs::read_to_string;
-
 use clap::{Args, Parser, Subcommand};
-use itertools::Itertools;
 
 use crate::ext::chemdraw;
-use crate::model::Reaction;
-use crate::model::ReactionList;
 use crate::model::{BalancedReaction, Compound, Units, YieldUnits};
+use crate::model::ReactionList;
 
 #[derive(Parser)]
 #[clap(name = "stoichkit")]

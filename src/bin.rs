@@ -1,6 +1,5 @@
 extern crate clap;
 extern crate core;
-#[macro_use]
 extern crate log;
 
 use crate::clap::Parser;

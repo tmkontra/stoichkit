@@ -1,6 +1,5 @@
 use std::cmp::Ordering;
 
-use crate::model::theoretical_reaction::YieldUnits;
 use crate::model::{Reactant, Sample};
 
 #[derive(Debug, Clone)]

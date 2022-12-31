@@ -1,24 +1,17 @@
-use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 
-use itertools::fold;
 use nom::branch::alt;
-use nom::bytes::complete::{take_until, take_while, take_while1};
+use nom::bytes::complete::{take_while1};
 use nom::character::complete::{digit1, one_of};
 use nom::combinator::map;
-use nom::multi::many0;
 use nom::{
     bytes::complete::{tag, take_while_m_n},
-    character::complete::char,
     combinator::{map_res, opt},
     multi::many1,
-    number::complete::be_u64,
     sequence::delimited,
     sequence::pair,
-    sequence::tuple,
-    AsChar, IResult, Parser,
+    IResult, Parser,
 };
-use periodic_table_on_an_enum::Element::Hydrogen;
 
 use crate::model::Element;
 use crate::parse::v1::element_from_string;
@@ -144,8 +137,8 @@ fn formula_parser(formula: &str) -> IResult<&str, HashMap<Element, u64>> {
 pub fn parse_formula_v2(
     formula: &str,
 ) -> Result<HashMap<Element, u64>, String> {
-    let (rem, elems) = formula_parser(formula)
-        .map_err(|e| format!("failed to parse: {:?}", formula))?;
+    let (_remainder, elems) = formula_parser(formula)
+        .map_err(|_| format!("failed to parse: {:?}", formula))?;
     Ok(elems)
 }
 
@@ -157,7 +150,7 @@ mod tests {
     use crate::parse::v2::parse_formula_v2;
 
     #[test]
-    fn test_H2O() {
+    fn test_h2o() {
         let formula = "H2O";
         let map = parse_formula_v2(formula).unwrap();
         let mut exp = HashMap::new();

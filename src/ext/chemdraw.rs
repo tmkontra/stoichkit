@@ -42,10 +42,12 @@ struct Step {
 
 #[derive(Deserialize, Debug)]
 struct Molecule {
+    #[allow(dead_code)]
     #[serde(rename(deserialize = "NAME"))]
     name: String,
     #[serde(rename(deserialize = "FORMULA"))]
     raw_formula: String,
+    #[allow(dead_code)]
     #[serde(rename(deserialize = "SMILES"))]
     smiles: String,
 }
