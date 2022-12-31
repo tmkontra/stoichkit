@@ -43,7 +43,7 @@ impl Reactant {
         if self.molar_coefficient != 1 || explicit {
             format!("{}*{}", self.molar_coefficient, self.compound.formula)
         } else {
-            format!("{}", self.compound.formula)
+            self.compound.formula.to_string()
         }
     }
 }

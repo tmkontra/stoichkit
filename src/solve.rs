@@ -17,7 +17,7 @@ pub fn build_matrix(
         debug!("Getting coefficients for {:?}", element);
         for compound in all_compounds.clone() {
             let coefficient =
-                compound.atoms.get(element).cloned().unwrap_or(0 as usize);
+                compound.atoms.get(element).cloned().unwrap_or(0_usize);
             trace!(
                 "Pushing {:?}*{:?} from {:?}",
                 coefficient,
@@ -46,7 +46,7 @@ pub fn solve_system(
         let x = a.lu();
         debug!("Solving equation system");
         x.solve(&b)
-            .expect(format!("Failed to solve matrix! {:?}", x).as_str())
+            .unwrap_or_else(|| panic!("Failed to solve matrix! {:?}", x))
     };
     let coefficients =
         solution.column(0).iter().map(|c| c.to_owned()).collect();
@@ -89,8 +89,8 @@ pub fn normalize_coefficients(
         .cloned()
         .combinations(2)
         .fold(1, |acc, cur| {
-            let cur_lcm = lcm(cur[0] as usize, cur[1] as usize);
-            return acc.max(cur_lcm)
+            let cur_lcm = lcm(cur[0], cur[1]);
+            acc.max(cur_lcm)
         });
     debug!("Scaling coefficients by: {}", scale);
     let mut scaled_coefficients: Vec<usize> = rational_limited

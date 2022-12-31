@@ -37,17 +37,17 @@ impl YieldReaction {
         YieldReaction { reagents, product }
     }
 
-    pub fn limiting_reagent(self: &Self) -> Sample {
+    pub fn limiting_reagent(&self) -> Sample {
         limiting_reagent(self.reagents.to_owned())
     }
 
-    pub fn theoretical_yield(self: &Self) -> f32 {
+    pub fn theoretical_yield(&self) -> f32 {
         let limiting = self.limiting_reagent();
         theoretical_yield(&limiting, &self.product.reactant)
             * self.product.reactant.compound.molar_mass
     }
 
-    pub fn percent_yield(self: &Self) -> f32 {
+    pub fn percent_yield(&self) -> f32 {
         self.product.mass / self.theoretical_yield()
     }
 }

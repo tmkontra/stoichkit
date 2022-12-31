@@ -23,11 +23,11 @@ impl Sample {
         })
     }
 
-    pub fn moles(self: &Self) -> f32 {
+    pub fn moles(&self) -> f32 {
         self.mass / self.reactant.compound.molar_mass
     }
 
-    pub fn molrxn(self: &Self) -> f32 {
+    pub fn molrxn(&self) -> f32 {
         self.moles() / self.reactant.molar_coefficient as f32
     }
 }

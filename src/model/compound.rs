@@ -30,7 +30,7 @@ impl Compound {
     }
 
     fn molecular_weight(atoms: &HashMap<Element, usize>) -> f32 {
-        atoms.into_iter().fold(0 as f32, |acc, (e, count)| {
+        atoms.iter().fold(0 as f32, |acc, (e, count)| {
             acc + e.get_atomic_mass() * count.to_owned() as f32
         })
     }

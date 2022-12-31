@@ -26,7 +26,7 @@ pub fn parse_formula(
                         i += 1;
                         let i_start = i;
                         while i < formula_len
-                            && formula.chars().nth(i).unwrap().is_digit(10)
+                            && formula.chars().nth(i).unwrap().is_ascii_digit()
                         {
                             i += 1;
                         }
@@ -78,7 +78,7 @@ pub fn parse_formula(
                 trace!("Captured symbol {:?}", name);
                 let elem: Element = element_from_string(name)?;
                 while i < formula_len
-                    && formula.chars().nth(i).unwrap().is_digit(10)
+                    && formula.chars().nth(i).unwrap().is_ascii_digit()
                 {
                     i += 1
                 }

@@ -31,9 +31,9 @@ impl BalancedReaction {
         products: &Vec<Reactant>,
     ) -> Result<(), (HashMap<Element, usize>, HashMap<Element, usize>)> {
         let react_elems: HashMap<Element, usize> =
-            Reactant::fold_elements(&reactants);
+            Reactant::fold_elements(reactants);
         let prod_elems: HashMap<Element, usize> =
-            Reactant::fold_elements(&products);
+            Reactant::fold_elements(products);
         debug!(
             "Checking balanced?: Reagent elements: {:?} === Product elements: {:?}",
             react_elems, prod_elems

@@ -12,10 +12,10 @@ impl ChemdrawReaction {
     pub fn reactants(&self) -> Vec<String> {
         self.steps
             .first()
-            .map(|s| s.reactants.iter().chain(s.reagents.iter()).collect())
-            .unwrap_or(Vec::new())
+            .map(|s: &Step| s.reactants.iter().chain(s.reagents.iter()).collect::<Vec<&Molecule>>())
+            .unwrap_or_default()
             .iter()
-            .map(|m| m.formula())
+            .map(|m: &&Molecule| m.formula())
             .collect()
     }
 

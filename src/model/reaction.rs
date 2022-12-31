@@ -19,11 +19,11 @@ impl Reaction {
             products,
         };
         rxn.check_elements()?;
-        return Ok(rxn);
+        Ok(rxn)
     }
 
     pub fn len(&self) -> usize {
-        return self.reactants.len() + self.products.len();
+        self.reactants.len() + self.products.len()
     }
 
     fn check_elements(&self) -> Result<(), String> {

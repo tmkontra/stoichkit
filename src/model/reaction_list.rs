@@ -29,8 +29,8 @@ impl ReactionList {
 
     pub fn theoretical_reaction(&self) -> Result<TheoreticalReaction, String> {
         let (reagent_input, product_input) = self.split_reagents_products();
-        match (reagent_input.clone().len(), product_input.clone().len()) {
-            (x, y) if x >= 1 as usize && y >= 1 as usize => Ok(()),
+        match (reagent_input.len(), product_input.len()) {
+            (x, y) if x >= 1_usize && y >= 1_usize => Ok(()),
             _ => Err("Must provide at least 1 reactant and 1 product"),
         }?;
         let reactant_samples: Vec<Sample> =
@@ -43,7 +43,7 @@ impl ReactionList {
         let reactants = reactant_samples
             .clone()
             .into_iter()
-            .map(|r| r.reactant.to_owned())
+            .map(|r| r.reactant)
             .collect();
         let reaction = BalancedReaction::new(reactants, products?)?;
         Ok(TheoreticalReaction::new(reaction, reactant_samples))
@@ -69,7 +69,7 @@ impl ReactionList {
             .into_iter()
             .take_while(|a| a.as_str() != "=")
             .collect();
-        let rx_len = reagent_input.clone().len() + 1;
+        let rx_len = reagent_input.len() + 1;
         let product_input: Vec<String> = self
             .substances
             .clone()
@@ -116,7 +116,7 @@ impl ReactionList {
     ) -> Result<Vec<(String, f32)>, String> {
         substance_strings
             .chunks(2)
-            .map(|c| c.to_vec().to_owned())
+            .map(|c| c.to_vec())
             .map(|pair| {
                 if pair.len() < 2 {
                     return Err(format!(
@@ -124,9 +124,10 @@ impl ReactionList {
                         pair[0]
                     ));
                 } else {
-                    match pair[1].parse() {
-                        Ok(mass) => Ok((pair[0].to_owned(), mass)),
-                        Err(_) => Err(format!("Expected mass for '{}', but could not parse '{}' as float.", pair[0], pair[1]))
+                    let parsed_mass: Option<f32> = pair.first().and_then(|m| m.parse::<f32>().ok());
+                    match parsed_mass {
+                        Some(mass) => Ok((pair[0].to_owned(), mass)),
+                        None => Err(format!("Expected mass for '{}', but could not parse '{}' as float.", pair[0], pair[1]))
                     }
                 }
             })

@@ -15,9 +15,9 @@ pub enum YieldUnits {
     Moles,
 }
 
-impl Into<Units> for YieldUnits {
-    fn into(self) -> Units {
-        match self {
+impl From<YieldUnits> for Units {
+    fn from(val: YieldUnits) -> Self {
+        match val {
             YieldUnits::Mass => Units::Grams,
             YieldUnits::Moles => Units::Moles,
         }

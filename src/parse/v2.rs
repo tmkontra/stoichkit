@@ -72,7 +72,7 @@ fn multi_group(multi_group: &str) -> IResult<&str, HashMap<Element, u64>> {
             opt(multiplier).map(|m| m.unwrap_or(1)),
         ),
         |(group, multiplier)| {
-            group.to_owned().iter().fold(
+            group.iter().fold(
                 HashMap::new(),
                 |mut acc, (el, num)| {
                     let entry: &mut u64 = acc.entry(el.to_owned()).or_insert(0);
@@ -119,8 +119,8 @@ fn formula_parser(formula: &str) -> IResult<&str, HashMap<Element, u64>> {
             |(groups, maybe_hydrate)| match &maybe_hydrate {
                 None => groups,
                 Some(hydrate) => {
-                    let mut hydrate_group = groups.to_owned();
-                    let mut h = vec![hydrate.to_owned()].to_owned();
+                    let mut hydrate_group = groups;
+                    let mut h = vec![hydrate.to_owned()];
                     hydrate_group.append(h.as_mut());
                     hydrate_group
                 }
