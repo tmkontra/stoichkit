@@ -26,6 +26,10 @@ impl Reaction {
         self.reactants.len() + self.products.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.reactants.is_empty() && self.products.is_empty()
+    }
+
     fn check_elements(&self) -> Result<(), String> {
         let reagent_atoms: HashSet<&Element> =
             Reaction::elements_from(&self.reactants);
@@ -73,7 +77,7 @@ impl Reaction {
         )
     }
 
-    fn check_all_nonzero(reactants: &Vec<Reactant>) -> Result<(), String> {
+    fn check_all_nonzero(reactants: &[Reactant]) -> Result<(), String> {
         let zeroes = reactants
             .iter()
             .filter(|r| r.molar_coefficient == 0)
@@ -102,7 +106,7 @@ impl Reaction {
         self.reactants.iter().chain(self.products.iter()).collect()
     }
 
-    fn elements_from(compounds: &Vec<Compound>) -> HashSet<&Element> {
+    fn elements_from(compounds: &[Compound]) -> HashSet<&Element> {
         compounds.iter().flat_map(|c| c.all_elements()).collect()
     }
 }

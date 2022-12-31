@@ -3,10 +3,12 @@ use std::collections::HashMap;
 use crate::model::Element;
 use crate::parse;
 
+pub type ElementCounts = HashMap<Element, usize>;
+
 #[derive(Clone, Debug)]
 pub struct Compound {
     pub formula: String,
-    pub atoms: HashMap<Element, usize>,
+    pub atoms: ElementCounts,
     pub molar_mass: f32,
 }
 
@@ -29,7 +31,7 @@ impl Compound {
         })
     }
 
-    fn molecular_weight(atoms: &HashMap<Element, usize>) -> f32 {
+    fn molecular_weight(atoms: &ElementCounts) -> f32 {
         atoms.iter().fold(0 as f32, |acc, (e, count)| {
             acc + e.get_atomic_mass() * count.to_owned() as f32
         })

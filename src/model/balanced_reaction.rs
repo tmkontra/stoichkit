@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::iter::FromIterator;
 
-use crate::model::{Element, Reactant};
+use crate::model::{ElementCounts, Reactant};
 
 #[derive(Debug, Clone)]
 pub struct BalancedReaction {
@@ -27,12 +27,12 @@ impl BalancedReaction {
     }
 
     fn check_balance(
-        reactants: &Vec<Reactant>,
-        products: &Vec<Reactant>,
-    ) -> Result<(), (HashMap<Element, usize>, HashMap<Element, usize>)> {
-        let react_elems: HashMap<Element, usize> =
+        reactants: &[Reactant],
+        products: &[Reactant],
+    ) -> Result<(), (ElementCounts, ElementCounts)> {
+        let react_elems: ElementCounts =
             Reactant::fold_elements(reactants);
-        let prod_elems: HashMap<Element, usize> =
+        let prod_elems: ElementCounts =
             Reactant::fold_elements(products);
         debug!(
             "Checking balanced?: Reagent elements: {:?} === Product elements: {:?}",
@@ -96,9 +96,5 @@ impl PartialEq for BalancedReaction {
         let ReactantMap(or) = other.reactants.clone().into_iter().collect();
         let ReactantMap(op) = other.products.clone().into_iter().collect();
         r == or && p == op
-    }
-
-    fn ne(&self, other: &Self) -> bool {
-        !self.eq(other)
     }
 }

@@ -80,7 +80,7 @@ pub fn parse_chemdraw_reaction(
 ) -> Result<ParsedReaction, String> {
     let parsed: Vec<ChemdrawReaction> = serde_json::from_str(document)
         .map_err(|e| format!("Could not parse: {:?}", e))?;
-    let rxn = parsed.first().ok_or("No reactions!".to_string())?;
+    let rxn = parsed.first().ok_or_else(|| "No reactions!".to_string())?;
     let reactants: Vec<Compound> = rxn
         .reactants()
         .iter()

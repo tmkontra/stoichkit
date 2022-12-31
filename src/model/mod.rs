@@ -1,5 +1,5 @@
 pub use balanced_reaction::BalancedReaction;
-pub use compound::Compound;
+pub use compound::{Compound, ElementCounts};
 pub use element::Element;
 pub use reactant::Reactant;
 pub use reaction::Reaction;

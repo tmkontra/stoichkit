@@ -1,5 +1,7 @@
-use crate::model::{Compound, Element};
 use std::collections::HashMap;
+
+use crate::model::Compound;
+use crate::model::compound::ElementCounts;
 
 #[derive(Clone, Debug)]
 pub struct Reactant {
@@ -26,7 +28,7 @@ impl Reactant {
         })
     }
 
-    pub fn fold_elements(reactants: &Vec<Reactant>) -> HashMap<Element, usize> {
+    pub fn fold_elements(reactants: &[Reactant]) -> ElementCounts {
         return reactants
             .iter()
             .map(|s| (&s.compound.atoms, s.molar_coefficient))
