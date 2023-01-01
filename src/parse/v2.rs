@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use nom::branch::alt;
-use nom::bytes::complete::{take_while1};
+use nom::bytes::complete::take_while1;
 use nom::character::complete::{digit1, one_of};
 use nom::combinator::map;
 use nom::{
@@ -22,9 +22,7 @@ fn symbol(sym: &str) -> IResult<&str, Element> {
         map(
             // one capital letter and possibly a second lower-case letter
             pair(
-                take_while_m_n(1, 1, |c: char| {
-                    c.is_ascii_uppercase()
-                }),
+                take_while_m_n(1, 1, |c: char| c.is_ascii_uppercase()),
                 opt(take_while1(|c: char| c.is_ascii_lowercase())),
             ),
             |(one, two): (&str, Option<&str>)| {
@@ -72,14 +70,11 @@ fn multi_group(multi_group: &str) -> IResult<&str, HashMap<Element, u64>> {
             opt(multiplier).map(|m| m.unwrap_or(1)),
         ),
         |(group, multiplier)| {
-            group.iter().fold(
-                HashMap::new(),
-                |mut acc, (el, num)| {
-                    let entry: &mut u64 = acc.entry(el.to_owned()).or_insert(0);
-                    *entry += num * multiplier;
-                    acc
-                },
-            )
+            group.iter().fold(HashMap::new(), |mut acc, (el, num)| {
+                let entry: &mut u64 = acc.entry(el.to_owned()).or_insert(0);
+                *entry += num * multiplier;
+                acc
+            })
         },
     )(multi_group)
 }

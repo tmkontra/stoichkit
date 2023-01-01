@@ -48,8 +48,11 @@ pub fn solve_system(
         x.solve(&b)
             .unwrap_or_else(|| panic!("Failed to solve matrix! {:?}", x))
     };
-    let coefficients: Vec<f64> =
-        solution.column(0).into_iter().map(|c| c.clone()).collect_vec();
+    let coefficients: Vec<f64> = solution
+        .column(0)
+        .into_iter()
+        .map(|c| c.clone())
+        .collect_vec();
     Ok(coefficients)
 }
 
@@ -87,14 +90,15 @@ pub fn normalize_coefficients(
         })
         .collect::<Result<Vec<usize>, String>>()?;
     trace!("Got denominators: {:?}", &denominators);
-    let scale: usize = denominators
-        .iter()
-        .cloned()
-        .combinations(2)
-        .fold(1, |acc, cur| {
-            let cur_lcm = lcm(cur[0], cur[1]);
-            acc.max(cur_lcm)
-        });
+    let scale: usize =
+        denominators
+            .iter()
+            .cloned()
+            .combinations(2)
+            .fold(1, |acc, cur| {
+                let cur_lcm = lcm(cur[0], cur[1]);
+                acc.max(cur_lcm)
+            });
     debug!("Scaling coefficients by: {}", scale);
     let mut scaled_coefficients: Vec<usize> = rational_limited
         .iter()
@@ -271,10 +275,7 @@ mod tests {
         // Fe3 + Cl5 = Cl2Fe5H2O
         let rxn: Result<Reaction, String> =
             new_reaction!(Fe3 + Cl5 = Cl2Fe5H2O);
-        assert!(
-            rxn.is_err(),
-            "Balance solution was not Err: {:?}", rxn
-        )
+        assert!(rxn.is_err(), "Balance solution was not Err: {:?}", rxn)
     }
 
     #[test]
@@ -284,7 +285,8 @@ mod tests {
         let result = rxn.balance();
         assert!(
             result.is_err(),
-            "Balance solution was not Err: {:?}", result
+            "Balance solution was not Err: {:?}",
+            result
         )
     }
 
@@ -295,7 +297,8 @@ mod tests {
         let result = rxn.balance();
         assert!(
             result.is_err(),
-            "Balance solution was not Err: {:?}", result
+            "Balance solution was not Err: {:?}",
+            result
         )
     }
 

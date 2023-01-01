@@ -30,10 +30,8 @@ impl BalancedReaction {
         reactants: &[Reactant],
         products: &[Reactant],
     ) -> Result<(), (ElementCounts, ElementCounts)> {
-        let react_elems: ElementCounts =
-            Reactant::element_counts(reactants);
-        let prod_elems: ElementCounts =
-            Reactant::element_counts(products);
+        let react_elems: ElementCounts = Reactant::element_counts(reactants);
+        let prod_elems: ElementCounts = Reactant::element_counts(products);
         debug!(
             "Checking balanced?: Reagent elements: {:?} === Product elements: {:?}",
             react_elems, prod_elems
@@ -80,7 +78,8 @@ impl From<std::slice::Iter<'_, Reactant>> for ReactantMap {
     fn from(reactants: Iter<'_, Reactant>) -> Self {
         let mut m = HashMap::new();
         for r in reactants {
-            m.entry(r.compound.formula.clone()).or_insert(r.molar_coefficient);
+            m.entry(r.compound.formula.clone())
+                .or_insert(r.molar_coefficient);
         }
         Self(m)
     }

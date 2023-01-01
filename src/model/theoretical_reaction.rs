@@ -1,6 +1,4 @@
-use crate::model::{
-    yield_reaction, BalancedReaction, Reactant, Sample, Units,
-};
+use crate::model::{yield_reaction, BalancedReaction, Reactant, Sample, Units};
 use clap::ArgEnum;
 
 #[derive(Debug, Clone)]
@@ -26,18 +24,16 @@ impl From<YieldUnits> for Units {
 
 impl TheoreticalReaction {
     pub fn yields(&self, units: &YieldUnits) -> Vec<(&Reactant, f32)> {
-        let limiting =
-            yield_reaction::limiting_reagent(&self.reactants);
+        let limiting = yield_reaction::limiting_reagent(&self.reactants);
         self.reaction
             .products
             .iter()
             .map(|p| yield_reaction::theoretical_yield(&limiting, p))
             .zip(&self.reaction.products)
             .map(|(moles, product)| match units {
-                YieldUnits::Mass => (
-                    product,
-                    moles * product.compound.molar_mass,
-                ),
+                YieldUnits::Mass => {
+                    (product, moles * product.compound.molar_mass)
+                }
                 YieldUnits::Moles => (product, moles),
             })
             .collect()

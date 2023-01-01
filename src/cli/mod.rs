@@ -1,8 +1,9 @@
+use std::fmt::Error;
 use clap::{Args, Parser, Subcommand};
 
 use crate::ext::chemdraw;
-use crate::model::{BalancedReaction, Compound, Units, YieldUnits};
 use crate::model::ReactionList;
+use crate::model::{Compound, Units, YieldUnits};
 
 #[derive(Parser)]
 #[clap(name = "stoichkit")]
@@ -15,101 +16,118 @@ pub struct Cli {
 impl Cli {
     pub fn run(self) {
         let result = match self.command {
-            Commands::TheoreticalYield(TheoreticalArgs {
-                substances,
-                units,
-            }) => {
-                let units = units.unwrap_or(YieldUnits::Mass);
-                ReactionList::new(substances)
-                    .theoretical_reaction()
-                    .map(|r| {
-                        ResultList::print(
-                            r.yields(&units)
-                                .iter()
-                                .map(|(r, amt)| (&r.compound, *amt))
-                                .collect(),
-                            units.into(),
-                        )
-                    })
-            }
-            Commands::Yield(YieldArgs { substances }) => {
-                ReactionList::new(substances).yield_reaction().map(|yld| {
-                    ResultList::print(
-                        vec![(
-                            &yld.product.reactant.compound,
-                            yld.percent_yield(),
-                        )],
-                        Units::Percent,
-                    )
-                })
-            }
-            Commands::Balance(args) => args.balance().map(|balanced| {
-                println!("{}", balanced.display_string(args.explicit))
-            }),
-            Commands::Moles { substances } => {
-                ReactionList::new(substances).substance_list().map(|subs| {
-                    subs.iter().for_each(|s| {
-                        println!(
-                            "{} mol",
-                            s.mass / s.reactant.compound.molar_mass
-                        )
-                    })
-                })
-            }
+            Commands::TheoreticalYield(
+                TheoreticalYieldArgs { reaction_list, units}
+            ) => Cli::run_theoretical_yield_command(reaction_list, units),
+            Commands::Yield(
+                YieldArgs { reaction_list }
+            ) => Cli::run_yield_command(reaction_list),
+            Commands::Balance(BalanceEquationArgs{ reaction_list, chemdraw_file, explicit }) =>
+                Cli::run_balance_command(reaction_list, chemdraw_file, explicit),
+            Commands::Moles(MolesArgs { reaction_list }) =>
+                Cli::run_moles_command(reaction_list),
         };
         match result {
             Ok(_) => (),
             Err(err) => println!("ERROR: {}", err),
         }
     }
-}
 
-#[derive(Subcommand)]
-enum Commands {
-    TheoreticalYield(TheoreticalArgs),
-    Yield(YieldArgs),
-    Balance(UnbalancedEquationArgs),
-    Moles { substances: Vec<String> }, // Pvnrt(GasArgs) TODO,
-}
+    fn run_theoretical_yield_command(
+        reaction_list: ReactionList,
+        units: Option<YieldUnits>,
+    ) -> Result<(), String> {
+        let units = units.unwrap_or(YieldUnits::Mass);
+        reaction_list
+            .parse_theoretical_reaction()
+            .map(|r| {
+                print_result_list(
+                    r.yields(&units)
+                        .iter()
+                        .map(|(r, amt)| (&r.compound, *amt))
+                        .collect(),
+                    units.into(),
+                )
+            })
+    }
 
-#[derive(Args)]
-struct TheoreticalArgs {
-    substances: Vec<String>,
-    #[clap(short, long, arg_enum)]
-    units: Option<YieldUnits>,
-}
+    fn run_yield_command(reaction_list: ReactionList) -> Result<(), String> {
+        reaction_list.parse_yield_reaction().map(|yld| {
+            print_result_list(
+                vec![(&yld.product.reactant.compound, yld.percent_yield())],
+                Units::Percent,
+            )
+        })
+    }
 
-#[derive(Args)]
-struct YieldArgs {
-    substances: Vec<String>,
-}
+    fn run_balance_command(reaction_list: ReactionList,
+                           chemdraw_file: Option<String>,
+                           explicit: bool) -> Result<(), String> {
+        let rxn = match chemdraw_file {
+            Some(file) => chemdraw::parse_chemdraw_file(file.as_ref()),
+            None => reaction_list.parse_reaction(),
+        }?;
+        let balanced_rxn = rxn.balance();
+        balanced_rxn.map(|balanced| {
+            println!("{}", balanced.display_string(explicit))
+        })
+    }
 
-struct ResultList {}
-
-impl ResultList {
-    pub(crate) fn print(list: Vec<(&Compound, f32)>, units: Units) {
-        list.iter().for_each(|(product, yld)| {
-            println!("{} {} {}", product.formula, yld, units)
+    fn run_moles_command(reaction_list: ReactionList) -> Result<(), String> {
+        reaction_list.to_samples().map(|subs| {
+            subs.iter().for_each(|s| {
+                println!("{} mol", s.mass / s.reactant.compound.molar_mass)
+            })
         })
     }
 }
 
+#[derive(Subcommand)]
+enum Commands {
+    TheoreticalYield(TheoreticalYieldArgs),
+    Yield(YieldArgs),
+    Balance(BalanceEquationArgs),
+    Moles(MolesArgs), // Pvnrt(GasArgs) TODO,
+}
+
 #[derive(Args)]
-struct UnbalancedEquationArgs {
+struct TheoreticalYieldArgs {
+    #[clap(parse(try_from_str = parse_reaction_list))]
+    reaction_list: ReactionList,
+    #[clap(short, long, arg_enum)]
+    units: Option<YieldUnits>,
+}
+
+fn parse_reaction_list(arg: &str) -> Result<ReactionList, Error> {
+    let args = arg.split(" ").map(String::from).collect();
+    Ok(ReactionList::new(args))
+}
+
+#[derive(Args)]
+struct YieldArgs {
+    #[clap(parse(try_from_str = parse_reaction_list))]
+    reaction_list: ReactionList,
+}
+
+#[derive(Args)]
+struct BalanceEquationArgs {
     #[clap(help = "Chemical equation [...reactants] = [...products]")]
-    substances: Vec<String>,
+    #[clap(parse(try_from_str = parse_reaction_list))]
+    reaction_list: ReactionList,
     #[clap(short, conflicts_with = "substances")]
     chemdraw_file: Option<String>,
     #[clap(short = 'x', long)]
     explicit: bool,
 }
 
-impl UnbalancedEquationArgs {
-    pub fn balance(&self) -> Result<BalancedReaction, String> {
-        let rxn = match &self.chemdraw_file {
-            Some(file) => chemdraw::parse_chemdraw_file(file),
-            None => ReactionList::new(self.substances.to_owned()).reaction(),
-        }?;
-        rxn.balance()
-    }
+#[derive(Args)]
+struct MolesArgs {
+    #[clap(parse(try_from_str = parse_reaction_list))]
+    reaction_list: ReactionList
+}
+
+fn print_result_list(list: Vec<(&Compound, f32)>, units: Units) {
+    list.iter().for_each(|(product, yld)| {
+        println!("{} {} {}", product.formula, yld, units)
+    })
 }

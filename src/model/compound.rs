@@ -19,10 +19,7 @@ impl Compound {
 
     pub fn new(formula: &str) -> Result<Compound, String> {
         let atoms: HashMap<Element, u64> = parse::parse_formula_v2(formula)?;
-        let atoms = atoms
-            .into_iter()
-            .map(|(k, v)| (k, v as usize))
-            .collect();
+        let atoms = atoms.into_iter().map(|(k, v)| (k, v as usize)).collect();
         let molecular_weight: f32 = Compound::molecular_weight(&atoms);
         Ok(Compound {
             formula: formula.to_string(),

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use crate::model::Compound;
 use crate::model::compound::ElementCounts;
+use crate::model::Compound;
 
 #[derive(Clone, Debug)]
 pub struct Reactant {
@@ -32,14 +32,13 @@ impl Reactant {
         let count_pairs = reactants
             .iter()
             .map(|s| (&s.compound.atoms, s.molar_coefficient));
-        return count_pairs
-            .fold(HashMap::new(), |mut acc, (item, coeff)| {
-                for (e, c) in item {
-                    let counter = acc.entry(e.clone()).or_insert(0);
-                    *counter += *c * coeff;
-                }
-                acc
-            });
+        return count_pairs.fold(HashMap::new(), |mut acc, (item, coeff)| {
+            for (e, c) in item {
+                let counter = acc.entry(e.clone()).or_insert(0);
+                *counter += *c * coeff;
+            }
+            acc
+        });
     }
 
     pub fn format(&self, explicit: bool) -> String {

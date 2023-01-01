@@ -4,7 +4,6 @@ use core::result::Result::{Err, Ok};
 use itertools::Itertools;
 
 use crate::model::*;
-use crate::model::{TheoreticalReaction, YieldReaction};
 
 pub struct ReactionList {
     substances: Vec<String>,
@@ -15,10 +14,11 @@ impl ReactionList {
         ReactionList { substances }
     }
 
-    pub fn yield_reaction(&self) -> Result<YieldReaction, String> {
+    pub fn parse_yield_reaction(&self) -> Result<YieldReaction, String> {
         let (reagent_input, product_input) = self.split_reagents_products();
-        let reagents = ReactionList::mass_pairs_to_substances(reagent_input)?;
-        let products = &mut ReactionList::mass_pairs_to_substances(product_input)?;
+        let reagents = ReactionList::mass_pairs_to_samples(reagent_input)?;
+        let products =
+            &mut ReactionList::mass_pairs_to_samples(product_input)?;
         let product = match products.len() {
             1 => Ok(products.remove(0)),
             0 => Err("Must specify a product!"),
@@ -27,14 +27,14 @@ impl ReactionList {
         Ok(YieldReaction::new(reagents, product))
     }
 
-    pub fn theoretical_reaction(&self) -> Result<TheoreticalReaction, String> {
+    pub fn parse_theoretical_reaction(&self) -> Result<TheoreticalReaction, String> {
         let (reagent_input, product_input) = self.split_reagents_products();
         match (reagent_input.len(), product_input.len()) {
             (x, y) if x >= 1_usize && y >= 1_usize => Ok(()),
             _ => Err("Must provide at least 1 reactant and 1 product"),
         }?;
         let reactant_samples: Vec<Sample> =
-            ReactionList::mass_pairs_to_substances(reagent_input)?;
+            ReactionList::mass_pairs_to_samples(reagent_input)?;
         let products: Result<Vec<Reactant>, String> = product_input
             .into_iter()
             .enumerate()
@@ -49,7 +49,7 @@ impl ReactionList {
         Ok(TheoreticalReaction::new(reaction, reactant_samples))
     }
 
-    pub fn reaction(&self) -> Result<Reaction, String> {
+    pub fn parse_reaction(&self) -> Result<Reaction, String> {
         let (reagents, products) = self.split_reagents_products();
         let reagents: Result<Vec<Compound>, String> = reagents
             .into_iter()
@@ -79,8 +79,8 @@ impl ReactionList {
         (reagent_input, product_input)
     }
 
-    pub fn substance_list(&self) -> Result<Vec<Sample>, String> {
-        ReactionList::mass_pairs_to_substances(self.substances.clone())
+    pub fn to_samples(&self) -> Result<Vec<Sample>, String> {
+        ReactionList::mass_pairs_to_samples(self.substances.clone())
     }
 
     fn str_to_reactant(
@@ -134,18 +134,18 @@ impl ReactionList {
             .collect()
     }
 
-    fn mass_pairs_to_substances(
-        substance_strings: Vec<String>,
+    fn mass_pairs_to_samples(
+        sample_strings: Vec<String>,
     ) -> Result<Vec<Sample>, String> {
-        let mut substances = vec![];
-        for (i, pair) in ReactionList::collect_mass_pairs(substance_strings)?
+        let mut samples = vec![];
+        for (i, pair) in ReactionList::collect_mass_pairs(sample_strings)?
             .into_iter()
             .enumerate()
         {
             let reactant = ReactionList::str_to_reactant(pair.0.to_owned(), i)?;
-            let substance = Sample::of_reactant(reactant, pair.1);
-            substances.push(substance);
+            let sample = Sample::of_reactant(reactant, pair.1);
+            samples.push(sample);
         }
-        Ok(substances)
+        Ok(samples)
     }
 }
