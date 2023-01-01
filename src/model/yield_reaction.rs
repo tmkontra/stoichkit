@@ -8,7 +8,7 @@ pub struct YieldReaction {
     pub product: Sample,
 }
 
-pub fn limiting_reagent(reagents: Vec<Sample>) -> Sample {
+pub fn limiting_reagent(reagents: &[Sample]) -> &Sample {
     reagents
         .into_iter()
         .min_by(|l, r| {
@@ -37,8 +37,8 @@ impl YieldReaction {
         YieldReaction { reagents, product }
     }
 
-    pub fn limiting_reagent(&self) -> Sample {
-        limiting_reagent(self.reagents.to_owned())
+    pub fn limiting_reagent(&self) -> &Sample {
+        limiting_reagent(&self.reagents)
     }
 
     pub fn theoretical_yield(&self) -> f32 {

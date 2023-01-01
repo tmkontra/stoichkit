@@ -8,6 +8,6 @@ pub fn parse_elements(
 ) -> ElementCounts {
     expected
         .iter()
-        .map(|p| (Element::from_symbol(p.0).unwrap(), p.1.to_owned()))
+        .map(|p| (Element::from_symbol(p.0).unwrap(), p.1.clone()))
         .collect()
 }

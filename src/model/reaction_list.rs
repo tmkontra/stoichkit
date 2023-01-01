@@ -18,13 +18,13 @@ impl ReactionList {
     pub fn yield_reaction(&self) -> Result<YieldReaction, String> {
         let (reagent_input, product_input) = self.split_reagents_products();
         let reagents = ReactionList::mass_pairs_to_substances(reagent_input)?;
-        let products = ReactionList::mass_pairs_to_substances(product_input)?;
+        let products = &mut ReactionList::mass_pairs_to_substances(product_input)?;
         let product = match products.len() {
+            1 => Ok(products.remove(0)),
             0 => Err("Must specify a product!"),
-            1 => Ok(products.first().unwrap()),
             _ => Err("Must specify only one product!"),
         }?;
-        Ok(YieldReaction::new(reagents.to_vec(), product.to_owned()))
+        Ok(YieldReaction::new(reagents, product))
     }
 
     pub fn theoretical_reaction(&self) -> Result<TheoreticalReaction, String> {
@@ -126,7 +126,7 @@ impl ReactionList {
                 } else {
                     let parsed_mass: Option<f32> = pair.first().and_then(|m| m.parse::<f32>().ok());
                     match parsed_mass {
-                        Some(mass) => Ok((pair[0].to_owned(), mass)),
+                        Some(mass) => Ok((pair[0].clone(), mass)),
                         None => Err(format!("Expected mass for '{}', but could not parse '{}' as float.", pair[0], pair[1]))
                     }
                 }

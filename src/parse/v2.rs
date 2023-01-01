@@ -23,9 +23,9 @@ fn symbol(sym: &str) -> IResult<&str, Element> {
             // one capital letter and possibly a second lower-case letter
             pair(
                 take_while_m_n(1, 1, |c: char| {
-                    c.to_owned().is_ascii_uppercase()
+                    c.is_ascii_uppercase()
                 }),
-                opt(take_while1(|c: char| c.to_owned().is_ascii_lowercase())),
+                opt(take_while1(|c: char| c.is_ascii_lowercase())),
             ),
             |(one, two): (&str, Option<&str>)| {
                 format!("{}{}", one, two.unwrap_or(""))
@@ -116,13 +116,12 @@ fn formula_parser(formula: &str) -> IResult<&str, HashMap<Element, u64>> {
     map(
         map(
             pair(many1(alt((multi_group, group))), opt(hydrate)),
-            |(groups, maybe_hydrate)| match &maybe_hydrate {
+            |(mut groups, maybe_hydrate)| match maybe_hydrate {
                 None => groups,
                 Some(hydrate) => {
-                    let mut hydrate_group = groups;
-                    let mut h = vec![hydrate.to_owned()];
-                    hydrate_group.append(h.as_mut());
-                    hydrate_group
+                    // let mut hydrate_group = ;
+                    groups.push(hydrate);
+                    groups
                 }
             },
         ),

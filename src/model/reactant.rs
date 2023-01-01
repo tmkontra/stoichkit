@@ -28,13 +28,14 @@ impl Reactant {
         })
     }
 
-    pub fn fold_elements(reactants: &[Reactant]) -> ElementCounts {
-        return reactants
+    pub fn element_counts(reactants: &[Reactant]) -> ElementCounts {
+        let count_pairs = reactants
             .iter()
-            .map(|s| (&s.compound.atoms, s.molar_coefficient))
+            .map(|s| (&s.compound.atoms, s.molar_coefficient));
+        return count_pairs
             .fold(HashMap::new(), |mut acc, (item, coeff)| {
                 for (e, c) in item {
-                    let counter = acc.entry(e.to_owned()).or_insert(0);
+                    let counter = acc.entry(e.clone()).or_insert(0);
                     *counter += *c * coeff;
                 }
                 acc

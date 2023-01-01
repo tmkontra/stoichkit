@@ -25,8 +25,8 @@ impl Cli {
                     .map(|r| {
                         ResultList::print(
                             r.yields(&units)
-                                .into_iter()
-                                .map(|(r, amt)| (r.compound, amt))
+                                .iter()
+                                .map(|(r, amt)| (&r.compound, *amt))
                                 .collect(),
                             units.into(),
                         )
@@ -36,7 +36,7 @@ impl Cli {
                 ReactionList::new(substances).yield_reaction().map(|yld| {
                     ResultList::print(
                         vec![(
-                            yld.product.reactant.compound.to_owned(),
+                            &yld.product.reactant.compound,
                             yld.percent_yield(),
                         )],
                         Units::Percent,
@@ -87,7 +87,7 @@ struct YieldArgs {
 struct ResultList {}
 
 impl ResultList {
-    pub(crate) fn print(list: Vec<(Compound, f32)>, units: Units) {
+    pub(crate) fn print(list: Vec<(&Compound, f32)>, units: Units) {
         list.iter().for_each(|(product, yld)| {
             println!("{} {} {}", product.formula, yld, units)
         })
@@ -107,8 +107,8 @@ struct UnbalancedEquationArgs {
 impl UnbalancedEquationArgs {
     pub fn balance(&self) -> Result<BalancedReaction, String> {
         let rxn = match &self.chemdraw_file {
-            None => ReactionList::new(self.substances.to_owned()).reaction(),
             Some(file) => chemdraw::parse_chemdraw_file(file),
+            None => ReactionList::new(self.substances.to_owned()).reaction(),
         }?;
         rxn.balance()
     }

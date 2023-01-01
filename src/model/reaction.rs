@@ -59,13 +59,13 @@ impl Reaction {
         debug!("Got solution coefficients: {:?}", &coefficients);
         trace!("Converting to rationals");
         let scaled_coefficients: Vec<usize> =
-            solve::normalize_coefficients(coefficients)?;
+            solve::normalize_coefficients(&coefficients)?;
         let result: Vec<Reactant> = self
             .all_compounds()
             .into_iter()
-            .zip(&mut scaled_coefficients.iter().map(|c| c.to_owned()))
+            .zip(scaled_coefficients.into_iter())
             .map(|(c, coefficient)| {
-                Reactant::of_compound(c.to_owned(), coefficient)
+                Reactant::of_compound(c.clone(), coefficient)
             })
             .collect();
         Reaction::check_all_nonzero(&result)?;

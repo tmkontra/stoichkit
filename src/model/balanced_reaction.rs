@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::iter::FromIterator;
+use std::slice::Iter;
 
 use crate::model::{ElementCounts, Reactant};
 
@@ -31,9 +31,9 @@ impl BalancedReaction {
         products: &[Reactant],
     ) -> Result<(), (ElementCounts, ElementCounts)> {
         let react_elems: ElementCounts =
-            Reactant::fold_elements(reactants);
+            Reactant::element_counts(reactants);
         let prod_elems: ElementCounts =
-            Reactant::fold_elements(products);
+            Reactant::element_counts(products);
         debug!(
             "Checking balanced?: Reagent elements: {:?} === Product elements: {:?}",
             react_elems, prod_elems
@@ -76,14 +76,11 @@ impl BalancedReaction {
 
 struct ReactantMap(HashMap<String, usize>);
 
-impl FromIterator<Reactant> for ReactantMap {
-    fn from_iter<R>(reactants: R) -> Self
-    where
-        R: IntoIterator<Item = Reactant>,
-    {
+impl From<std::slice::Iter<'_, Reactant>> for ReactantMap {
+    fn from(reactants: Iter<'_, Reactant>) -> Self {
         let mut m = HashMap::new();
         for r in reactants {
-            m.entry(r.compound.formula).or_insert(r.molar_coefficient);
+            m.entry(r.compound.formula.clone()).or_insert(r.molar_coefficient);
         }
         Self(m)
     }
@@ -91,10 +88,10 @@ impl FromIterator<Reactant> for ReactantMap {
 
 impl PartialEq for BalancedReaction {
     fn eq(&self, other: &Self) -> bool {
-        let ReactantMap(r) = self.reactants.clone().into_iter().collect();
-        let ReactantMap(p) = self.products.clone().into_iter().collect();
-        let ReactantMap(or) = other.reactants.clone().into_iter().collect();
-        let ReactantMap(op) = other.products.clone().into_iter().collect();
+        let ReactantMap(r) = &self.reactants.iter().into();
+        let ReactantMap(p) = &self.products.iter().into();
+        let ReactantMap(or) = &other.reactants.iter().into();
+        let ReactantMap(op) = &other.products.iter().into();
         r == or && p == op
     }
 }

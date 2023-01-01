@@ -48,19 +48,19 @@ pub fn solve_system(
         x.solve(&b)
             .unwrap_or_else(|| panic!("Failed to solve matrix! {:?}", x))
     };
-    let coefficients =
-        solution.column(0).iter().map(|c| c.to_owned()).collect();
+    let coefficients: Vec<f64> =
+        solution.column(0).into_iter().map(|c| c.clone()).collect_vec();
     Ok(coefficients)
 }
 
 pub fn normalize_coefficients(
-    coefficients: Vec<f64>,
+    coefficients: &Vec<f64>,
 ) -> Result<Vec<usize>, String> {
     let rational_coefficients: Vec<Rational> = coefficients
-        .iter()
+        .into_iter()
         .map(|c| {
             trace!("Constructing rational from {:?}", &c);
-            Rational::from_f64(c.to_owned()).ok_or_else(|| {
+            Rational::from_f64(c.clone()).ok_or_else(|| {
                 format!("Could not construct rational from: {:?}", &c)
             })
         })
@@ -68,8 +68,11 @@ pub fn normalize_coefficients(
     trace!("Got rational coefficients: {:?}", &rational_coefficients);
     trace!("Limiting denominators");
     let rational_limited: Vec<Rational> = rational_coefficients
-        .iter()
-        .map(|r| limit_denominator(&r.clone().abs(), 100))
+        .into_iter()
+        .map(move |mut r| {
+            r.abs_mut();
+            limit_denominator(r, 100)
+        })
         .collect::<Result<Vec<Rational>, String>>()?;
     trace!("Limited rational coefficients: {:?}", rational_limited);
     let denominators: Vec<usize> = rational_limited
@@ -108,7 +111,7 @@ pub fn normalize_coefficients(
 }
 
 pub fn limit_denominator(
-    given: &Rational,
+    given: Rational,
     max_denominator: u64,
 ) -> Result<Rational, String> {
     debug!(
@@ -116,7 +119,7 @@ pub fn limit_denominator(
         given, max_denominator
     );
     if max_denominator < 1 || given.denom() <= &max_denominator {
-        Ok(given.to_owned())
+        Ok(given)
     } else {
         let (mut p0, mut q0, mut p1, mut q1) = (0u64, 1u64, 1u64, 0u64);
         let (mut n, mut d) = (
@@ -153,8 +156,8 @@ pub fn limit_denominator(
         let k = (max_denominator - q0) / q1;
         let bound1: Rational = Rational::from((p0 + k * p1, q0 + k * q1));
         let bound2: Rational = Rational::from((p1, q1));
-        let d1f: Rational = bound1.clone() - given;
-        let d2f: Rational = bound2.clone() - given;
+        let d1f: Rational = bound1.clone() - &given;
+        let d2f: Rational = bound2.clone() - &given;
         if d1f.abs() <= d2f.abs() {
             Ok(bound1)
         } else {
